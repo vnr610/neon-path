@@ -1,11 +1,12 @@
 import { ReactNode, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Sparkles, FolderGit2, GitCommitVertical, Award, LogOut, Swords, Menu, X } from "lucide-react";
+import { LayoutDashboard, Home, FileText, Sparkles, FolderGit2, GitCommitVertical, Award, LogOut, Swords, Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const items = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/admin/blog", label: "Blog Posts", icon: FileText },
+  { to: "/admin/home", label: "Home page", icon: Home },
+  { to: "/admin/writeups", label: "Writeups", icon: FileText },
   { to: "/admin/skills", label: "Skills", icon: Sparkles },
   { to: "/admin/projects", label: "Projects", icon: FolderGit2 },
   { to: "/admin/timeline", label: "Timeline", icon: GitCommitVertical },
@@ -26,7 +27,7 @@ export function AdminLayout({ children, title }: { children: ReactNode; title: s
     <div className="min-h-screen flex">
       {/* Sidebar */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 z-40 h-screen w-64 border-r border-border/60 bg-background/80 backdrop-blur-xl flex flex-col transition-transform ${
+        className={`fixed lg:sticky top-0 left-0 z-40 h-screen w-80 max-w-[85vw] border-r border-border/60 bg-background/80 backdrop-blur-xl flex flex-col transition-transform ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >

@@ -3,6 +3,8 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AdminFormShell, type FormStatus } from "@/components/saber/AdminFormShell";
 import { FormField, FormSection, SaberInput, SaberTextarea } from "@/components/saber/FormField";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { Edit3, Trash2 } from "lucide-react";
 import {
   addProject,
@@ -19,6 +21,8 @@ const blankProjectForm = {
   live: "",
   stack: "",
   cover: "",
+  featuredOnHome: false,
+  homeSlot: "" as "" | "1" | "2" | "3",
 };
 
 const AdminProjects = () => {
@@ -54,6 +58,11 @@ const AdminProjects = () => {
       live: project.live ?? "",
       stack: project.stack,
       cover: project.cover ?? "",
+      featuredOnHome: project.featuredOnHome ?? false,
+      homeSlot:
+        project.homeSlot != null && (project.homeSlot === 1 || project.homeSlot === 2 || project.homeSlot === 3)
+          ? String(project.homeSlot)
+          : "",
     });
     setStatus("ready");
     setStatusMessage("Editing existing project.");
@@ -88,6 +97,13 @@ const AdminProjects = () => {
       return;
     }
 
+    let homeSlot: number | null = null;
+    if (formData.featuredOnHome) {
+      if (formData.homeSlot === "1" || formData.homeSlot === "2" || formData.homeSlot === "3") {
+        homeSlot = parseInt(formData.homeSlot, 10);
+      }
+    }
+
     if (editingId) {
       await updateProject(editingId, {
         name,
@@ -96,6 +112,8 @@ const AdminProjects = () => {
         live: formData.live.trim() || undefined,
         stack,
         cover: formData.cover.trim() || undefined,
+        featuredOnHome: formData.featuredOnHome,
+        homeSlot: formData.featuredOnHome ? homeSlot : null,
       });
       setStatus("success");
       setStatusMessage("Project updated successfully.");
@@ -107,6 +125,8 @@ const AdminProjects = () => {
         live: formData.live.trim() || undefined,
         stack,
         cover: formData.cover.trim() || undefined,
+        featuredOnHome: formData.featuredOnHome,
+        homeSlot: formData.featuredOnHome ? homeSlot : null,
       });
       setStatus("success");
       setStatusMessage("Project forged successfully.");
@@ -197,6 +217,59 @@ const AdminProjects = () => {
               />
             </FormField>
           </FormSection>
+
+          <FormSection title="Home spotlight">
+            <FormField
+              id="featuredOnHome"
+              label="Show on home page"
+              hint="Pinned in the Featured Projects grid on /. Configure copy under Admin → Home page."
+            >
+              <div className="flex items-center gap-3 pt-1">
+                <Switch
+                  id="featuredOnHome"
+                  checked={formData.featuredOnHome}
+                  onCheckedChange={(checked) =>
+                    setFormData({
+                      ...formData,
+                      featuredOnHome: checked,
+                      homeSlot: checked ? formData.homeSlot : "",
+                    })
+                  }
+                />
+                <span className="text-sm text-muted-foreground">
+                  {formData.featuredOnHome ? "Visible on landing" : "Hidden from landing"}
+                </span>
+              </div>
+            </FormField>
+            {formData.featuredOnHome && (
+              <FormField
+                id="homeSlot"
+                label="Slot order"
+                hint="Lower numbers appear first. Use Auto to order after explicitly numbered slots."
+              >
+                <select
+                  id="homeSlot"
+                  name="homeSlot"
+                  value={formData.homeSlot}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      homeSlot: e.target.value as (typeof blankProjectForm)["homeSlot"],
+                    })
+                  }
+                  className={cn(
+                    "w-full rounded-md bg-background/40 border border-border/60 px-3.5 py-2.5 text-sm font-mono text-foreground",
+                    "hover:border-foreground/30 focus:border-foreground/70 outline-none transition-all",
+                  )}
+                >
+                  <option value="">Auto (after numbered slots)</option>
+                  <option value="1">1 — first</option>
+                  <option value="2">2 — second</option>
+                  <option value="3">3 — third</option>
+                </select>
+              </FormField>
+            )}
+          </FormSection>
         </AdminFormShell>
 
         <section className="space-y-4">
@@ -253,6 +326,12 @@ const AdminProjects = () => {
                         </a>
                       )}
                     </div>
+                    {project.featuredOnHome && (
+                      <p className="mt-3 text-[10px] uppercase tracking-[0.28em] text-saber-blue/90">
+                        Home: pinned
+                        {project.homeSlot != null ? ` · slot ${project.homeSlot}` : ""}
+                      </p>
+                    )}
                   </div>
                 </article>
               ))}

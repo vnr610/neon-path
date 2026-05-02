@@ -10,7 +10,8 @@ import Index from "./pages/Index";
 import About from "./pages/About";
 import Skills from "./pages/Skills";
 import Projects from "./pages/Projects";
-import Blog from "./pages/Blog";
+import Writeups from "./pages/Blog";
+import WriteupPost from "./pages/BlogPost";
 import Timeline from "./pages/Timeline";
 import Certifications from "./pages/Certifications";
 import NotFound from "./pages/NotFound";
@@ -18,11 +19,12 @@ import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminCallback from "./pages/admin/AdminCallback";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminBlog from "./pages/admin/AdminBlog";
+import AdminWriteups from "./pages/admin/AdminBlog";
 import AdminSkills from "./pages/admin/AdminSkills";
 import AdminProjects from "./pages/admin/AdminProjects";
 import AdminTimeline from "./pages/admin/AdminTimeline";
 import AdminCertifications from "./pages/admin/AdminCertifications";
+import AdminHome from "./pages/admin/AdminHome";
 
 const queryClient = new QueryClient();
 
@@ -38,14 +40,19 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/skills" element={<Skills />} />
             <Route path="/projects" element={<Projects />} />
-            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog" element={<Writeups />} />
+            <Route path="/blog/:slug" element={<WriteupPost />} />
+            <Route path="/writeups" element={<Writeups />} />
+            <Route path="/writeups/:slug" element={<WriteupPost />} />
             <Route path="/timeline" element={<Timeline />} />
             <Route path="/certifications" element={<Certifications />} />
 
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/callback" element={<AdminCallback />} />
             <Route path="/admin" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
-            <Route path="/admin/blog" element={<RequireAdmin><AdminBlog /></RequireAdmin>} />
+            <Route path="/admin/home" element={<RequireAdmin><AdminHome /></RequireAdmin>} />
+            <Route path="/admin/blog" element={<RequireAdmin><AdminWriteups /></RequireAdmin>} />
+            <Route path="/admin/writeups" element={<RequireAdmin><AdminWriteups /></RequireAdmin>} />
             <Route path="/admin/skills" element={<RequireAdmin><AdminSkills /></RequireAdmin>} />
             <Route path="/admin/projects" element={<RequireAdmin><AdminProjects /></RequireAdmin>} />
             <Route path="/admin/timeline" element={<RequireAdmin><AdminTimeline /></RequireAdmin>} />

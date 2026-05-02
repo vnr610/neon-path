@@ -40,6 +40,8 @@ export type Database = {
           slug: string
           excerpt: string | null
           content: string
+          content_format: "markdown" | "html"
+          thumbnail_url: string | null
           tags: string[]
           created_at: string
           updated_at: string
@@ -50,6 +52,8 @@ export type Database = {
           slug: string
           excerpt?: string | null
           content: string
+          content_format?: "markdown" | "html"
+          thumbnail_url?: string | null
           tags?: string[]
           created_at?: string
           updated_at?: string
@@ -60,6 +64,8 @@ export type Database = {
           slug?: string
           excerpt?: string | null
           content?: string
+          content_format?: "markdown" | "html"
+          thumbnail_url?: string | null
           tags?: string[]
           created_at?: string
           updated_at?: string
@@ -105,6 +111,8 @@ export type Database = {
           live: string | null
           stack: string
           cover: string | null
+          featured_on_home: boolean
+          home_slot: number | null
           created_at: string
           updated_at: string
         }
@@ -116,6 +124,8 @@ export type Database = {
           live?: string | null
           stack: string
           cover?: string | null
+          featured_on_home?: boolean
+          home_slot?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -127,7 +137,42 @@ export type Database = {
           live?: string | null
           stack?: string
           cover?: string | null
+          featured_on_home?: boolean
+          home_slot?: number | null
           created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      site_home: {
+        Row: {
+          id: number
+          focus_title: string | null
+          focus_description: string | null
+          github_username: string | null
+          leetcode_username: string | null
+          hackthebox_username: string | null
+          hackerone_username: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          focus_title?: string | null
+          focus_description?: string | null
+          github_username?: string | null
+          leetcode_username?: string | null
+          hackthebox_username?: string | null
+          hackerone_username?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          focus_title?: string | null
+          focus_description?: string | null
+          github_username?: string | null
+          leetcode_username?: string | null
+          hackthebox_username?: string | null
+          hackerone_username?: string | null
           updated_at?: string
         }
         Relationships: []
