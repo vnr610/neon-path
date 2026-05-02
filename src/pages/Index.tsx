@@ -18,21 +18,21 @@ const Index = () => {
           <div className="max-w-3xl">
             <div className="flex items-center gap-3 mb-6 animate-fade-up opacity-0" style={{ animationDelay: "0.1s" }}>
               <span className="h-px w-10 bg-saber-blue shadow-glow-blue" />
-              <span className="text-xs uppercase tracking-[0.4em] text-muted-foreground">Initializing Realm</span>
+              <span className="text-eyebrow">Initializing Realm</span>
             </div>
 
-            <h1 className="font-display text-5xl sm:text-7xl md:text-8xl font-bold leading-[0.95] mb-6 animate-fade-up opacity-0" style={{ animationDelay: "0.2s" }}>
+            <h1 className="text-display-xl mb-6 animate-fade-up opacity-0" style={{ animationDelay: "0.2s" }}>
               M Thapa
               <br />
               <span className="saber-text">Magar</span>
-              <span className="text-saber-blue">.</span>
+              <span className="text-foreground">.</span>
             </h1>
 
-            <p className="text-lg sm:text-xl text-muted-foreground mb-3 max-w-xl leading-relaxed animate-fade-up opacity-0" style={{ animationDelay: "0.35s" }}>
-              Mastering <span className="text-saber-blue">Full Stack</span> & <span className="text-saber-purple">Cybersecurity</span>
+            <p className="text-lead mb-3 max-w-xl animate-fade-up opacity-0" style={{ animationDelay: "0.35s" }}>
+              Mastering <span className="text-foreground font-medium">Full Stack</span> & <span className="text-foreground font-medium">Cybersecurity</span>
             </p>
-            <p className="text-sm text-muted-foreground/80 mb-10 font-mono tracking-wider animate-fade-up opacity-0" style={{ animationDelay: "0.45s" }}>
-              <span className="text-saber-blue">{">"}</span> vnr610@realm:~$ forging path through the code
+            <p className="text-mono mb-10 animate-fade-up opacity-0" style={{ animationDelay: "0.45s" }}>
+              <span className="text-foreground">{">"}</span> vnr610@realm:~$ forging path through the code
             </p>
 
             <div className="flex flex-wrap items-center gap-3 animate-fade-up opacity-0" style={{ animationDelay: "0.6s" }}>
@@ -64,6 +64,8 @@ const Index = () => {
           icon={Target}
           title="No active focus declared"
           description="Once you set a current focus area it will appear here as a glowing beacon."
+          hint="Discipline begins with a single intent."
+          status="focus :: undeclared"
         />
       </section>
 
@@ -74,7 +76,8 @@ const Index = () => {
           icon={Activity}
           title="No recent progress logged"
           description="New milestones and learning entries will appear here as they're recorded."
-          glow="purple"
+          hint="Small commits, compounded daily."
+          status="log :: empty"
         />
       </section>
 

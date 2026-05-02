@@ -49,6 +49,8 @@ const Skills = () => {
               icon={Code2}
               title="No skills logged in this realm"
               description="Add full stack skills to see them charted here with progress and level badges."
+              hint="Mastery is built one primitive at a time."
+              status="realm :: full-stack/0"
             />
           </section>
 
@@ -74,7 +76,8 @@ const Skills = () => {
               icon={Shield}
               title="No skills logged in this realm"
               description="Add cybersecurity skills to track mastery across offense, defense, and forensics."
-              glow="purple"
+              hint="Defense begins with curiosity."
+              status="realm :: cybersec/0"
             />
           </section>
         </div>
