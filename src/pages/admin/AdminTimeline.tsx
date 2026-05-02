@@ -1,6 +1,12 @@
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AdminFormShell } from "@/components/saber/AdminFormShell";
-import { FormField, FormSection, SaberInput, SaberTextarea } from "@/components/saber/FormField";
+import {
+  FormField,
+  FormSection,
+  SaberInput,
+  SaberTextarea,
+  SaberDatePicker,
+} from "@/components/saber/FormField";
 
 const AdminTimeline = () => (
   <AdminLayout title="Timeline">
@@ -13,7 +19,7 @@ const AdminTimeline = () => (
       <FormSection title="When & Where">
         <div className="grid sm:grid-cols-2 gap-5">
           <FormField id="date" label="Date" required>
-            <SaberInput id="date" type="date" />
+            <SaberDatePicker id="date" placeholder="Select milestone date" disabledDates={(d) => d > new Date()} />
           </FormField>
           <FormField id="realm" label="Realm" required hint="Which discipline this milestone belongs to.">
             <SaberInput id="realm" placeholder="Full Stack / Cyber" maxLength={40} />

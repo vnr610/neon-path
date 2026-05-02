@@ -1,6 +1,20 @@
-import { ReactNode, forwardRef, InputHTMLAttributes, TextareaHTMLAttributes } from "react";
+import {
+  ReactNode,
+  forwardRef,
+  cloneElement,
+  isValidElement,
+  useId,
+  InputHTMLAttributes,
+  TextareaHTMLAttributes,
+  ButtonHTMLAttributes,
+  useState,
+} from "react";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 /* ------------------------------------------------------------------ */
 /* Shared input chrome                                                 */
@@ -46,6 +60,23 @@ export function FormField({
   children,
 }: FormFieldProps) {
   const state: FieldState = error ? "error" : "default";
+  const hintId = hint ? `${id}-hint` : undefined;
+  const errorId = error ? `${id}-error` : undefined;
+  const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
+
+  // Auto-wire aria attributes onto the first valid child (the actual control)
+  const enhancedChild = isValidElement(children)
+    ? cloneElement(children as React.ReactElement<any>, {
+        id: (children.props as any).id ?? id,
+        "aria-describedby":
+          [describedBy, (children.props as any)["aria-describedby"]]
+            .filter(Boolean)
+            .join(" ") || undefined,
+        "aria-invalid": error ? true : (children.props as any)["aria-invalid"],
+        "aria-required": required || (children.props as any)["aria-required"],
+        state: (children.props as any).state ?? state,
+      })
+    : children;
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -56,7 +87,11 @@ export function FormField({
         >
           <span className="text-foreground/40 mr-1.5">//</span>
           {label}
-          {required && <span className="text-foreground/70 ml-1">*</span>}
+          {required && (
+            <span className="text-foreground/70 ml-1" aria-hidden="true">
+              *
+            </span>
+          )}
         </label>
         {optional && (
           <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/60">
@@ -65,15 +100,22 @@ export function FormField({
         )}
       </div>
 
-      <div data-state={state}>{children}</div>
+      <div data-state={state}>{enhancedChild}</div>
 
       {hint && !error && (
-        <p className="font-mono text-[10px] tracking-wide text-muted-foreground/70 pl-0.5">
+        <p
+          id={hintId}
+          className="font-mono text-[10px] tracking-wide text-muted-foreground/70 pl-0.5"
+        >
           {hint}
         </p>
       )}
       {error && (
-        <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-destructive">
+        <p
+          id={errorId}
+          role="alert"
+          className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-destructive"
+        >
           <AlertCircle className="h-3 w-3" />
           {error}
         </p>
@@ -160,3 +202,81 @@ export function FieldSuccessHint({ children }: { children: ReactNode }) {
     </p>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* SaberDatePicker — popover calendar with input shell styling         */
+/* ------------------------------------------------------------------ */
+
+interface SaberDatePickerProps
+  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "value" | "onChange"> {
+  value?: Date;
+  onChange?: (date: Date | undefined) => void;
+  placeholder?: string;
+  state?: FieldState;
+  disabledDates?: (date: Date) => boolean;
+}
+
+export const SaberDatePicker = forwardRef<HTMLButtonElement, SaberDatePickerProps>(
+  (
+    {
+      value,
+      onChange,
+      placeholder = "Pick a date",
+      state: stateProp = "default",
+      disabledDates,
+      className,
+      id,
+      ...buttonProps
+    },
+    ref,
+  ) => {
+    const [internal, setInternal] = useState<Date | undefined>(value);
+    const selected = value ?? internal;
+    const fallbackId = useId();
+    const fieldId = id ?? fallbackId;
+
+    const handleChange = (d: Date | undefined) => {
+      setInternal(d);
+      onChange?.(d);
+    };
+
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            ref={ref}
+            id={fieldId}
+            type="button"
+            className={cn(
+              baseFieldClasses,
+              "h-10 flex items-center justify-between text-left",
+              stateClasses[stateProp],
+              !selected && "text-muted-foreground/60",
+              className,
+            )}
+            {...buttonProps}
+          >
+            <span className="truncate">
+              {selected ? format(selected, "PPP") : placeholder}
+            </span>
+            <CalendarIcon className="h-4 w-4 ml-2 opacity-60 shrink-0" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          className="w-auto p-0 saber-border bg-popover/95 backdrop-blur-xl"
+          align="start"
+        >
+          <Calendar
+            mode="single"
+            selected={selected}
+            onSelect={handleChange}
+            disabled={disabledDates}
+            initialFocus
+            className={cn("p-3 pointer-events-auto")}
+          />
+        </PopoverContent>
+      </Popover>
+    );
+  },
+);
+SaberDatePicker.displayName = "SaberDatePicker";

@@ -1,6 +1,11 @@
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AdminFormShell } from "@/components/saber/AdminFormShell";
-import { FormField, FormSection, SaberInput } from "@/components/saber/FormField";
+import {
+  FormField,
+  FormSection,
+  SaberInput,
+  SaberDatePicker,
+} from "@/components/saber/FormField";
 
 const AdminCertifications = () => (
   <AdminLayout title="Certifications">
@@ -19,7 +24,7 @@ const AdminCertifications = () => (
             <SaberInput id="issuer" placeholder="Issuing organization" maxLength={80} />
           </FormField>
           <FormField id="date" label="Date Issued" required>
-            <SaberInput id="date" type="date" />
+            <SaberDatePicker id="date" placeholder="Select issue date" disabledDates={(d) => d > new Date()} />
           </FormField>
         </div>
       </FormSection>
