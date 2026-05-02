@@ -146,6 +146,7 @@ const AdminProjects = () => {
           description="Add a project to the vault — link the repository, the live build, and the tech behind it."
           submitLabel={editingId ? "Save Changes" : "Forge Entry"}
           onSubmit={handleSubmit}
+          onDiscard={resetForm}
           status={status}
           statusMessage={statusMessage}
           errors={errors}

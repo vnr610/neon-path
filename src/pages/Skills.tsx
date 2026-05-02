@@ -37,6 +37,7 @@ const Skills = () => {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [siteHome, setSiteHome] = useState<SiteHomeSettings | null>(null);
   const [achievements, setAchievements] = useState<ExternalAchievements | null>(null);
+  const [achievementsLoading, setAchievementsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -50,6 +51,7 @@ const Skills = () => {
         hackeroneUsername: home.hackeroneUsername,
       });
       setAchievements(synced);
+      setAchievementsLoading(false);
     };
     fetchData();
   }, []);
@@ -68,85 +70,58 @@ const Skills = () => {
       <div className="container py-16">
         <PageHeader title="Skills Dashboard" subtitle="Disciplines mapped across two realms — full stack craft and cyber defense." />
 
-        <div className="saber-card p-6 mb-8">
+        <div className="saber-card p-6 mb-8 animate-fade-up opacity-0" style={{ animationDelay: "0.1s" }}>
           <div className="flex items-center gap-2 mb-4">
-            <Trophy className="h-4 w-4 text-saber-purple" />
+            <Trophy className="h-4 w-4 text-saber-purple animate-saber-pulse" />
             <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Synced achievements</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <div className="rounded-md border border-border/60 p-4">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">GitHub push events (30d)</p>
-              <p className="font-display text-2xl mt-2">{achievements?.githubPushes30d ?? (githubHandle ? 0 : "—")}</p>
-              {githubHandle ? (
-                <a className="text-xs text-saber-blue hover:underline" href={`https://github.com/${githubHandle}`} target="_blank" rel="noreferrer">
-                  @{githubHandle}
-                </a>
-              ) : null}
-            </div>
-            <div className="rounded-md border border-border/60 p-4">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">GitHub public events (30d)</p>
-              <p className="font-display text-2xl mt-2">{achievements?.githubPublicEvents30d ?? (githubHandle ? 0 : "—")}</p>
-              {githubHandle ? (
-                <a className="text-xs text-saber-blue hover:underline" href={`https://github.com/${githubHandle}`} target="_blank" rel="noreferrer">
-                  @{githubHandle}
-                </a>
-              ) : null}
-            </div>
-            <div className="rounded-md border border-border/60 p-4">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">LeetCode solved</p>
-              <p className="font-display text-2xl mt-2">{achievements?.leetcodeSolved ?? "—"}</p>
-              {leetcodeHandle ? (
-                <a
-                  className="text-xs text-saber-blue hover:underline"
-                  href={`https://leetcode.com/u/${encodeURIComponent(leetcodeHandle)}/`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  @{leetcodeHandle}
-                </a>
-              ) : null}
-            </div>
-            <div className="rounded-md border border-border/60 p-4">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Hack The Box rank</p>
-              <p className="font-display text-2xl mt-2">{achievements?.hacktheboxRank ?? "—"}</p>
-              {htbHandle ? (
-                <a className="text-xs text-saber-blue hover:underline" href={`https://app.hackthebox.com/users/${htbHandle}`} target="_blank" rel="noreferrer">
-                  {htbHandle}
-                </a>
-              ) : null}
-            </div>
-            <div className="rounded-md border border-border/60 p-4">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">HackerOne reputation</p>
-              <p className="font-display text-2xl mt-2">{achievements?.hackeroneReputation ?? "—"}</p>
-              {hackeroneHandle ? (
-                <a className="text-xs text-saber-blue hover:underline" href={`https://hackerone.com/${hackeroneHandle}`} target="_blank" rel="noreferrer">
-                  @{hackeroneHandle}
-                </a>
-              ) : null}
-            </div>
+            {[
+              { label: "GitHub push events (30d)", value: achievementsLoading ? "…" : achievements?.githubPushes30d ?? (githubHandle ? 0 : "—"), link: githubHandle ? `https://github.com/${githubHandle}` : null, handle: githubHandle ? `@${githubHandle}` : null },
+              { label: "GitHub public events (30d)", value: achievementsLoading ? "…" : achievements?.githubPublicEvents30d ?? (githubHandle ? 0 : "—"), link: githubHandle ? `https://github.com/${githubHandle}` : null, handle: githubHandle ? `@${githubHandle}` : null },
+              { label: "LeetCode solved", value: achievementsLoading ? "…" : achievements?.leetcodeSolved != null ? achievements.leetcodeSolved : "—", link: leetcodeHandle ? `https://leetcode.com/u/${encodeURIComponent(leetcodeHandle)}/` : null, handle: leetcodeHandle ? `@${leetcodeHandle}` : null },
+              { label: "Hack The Box rank", value: achievementsLoading ? "…" : achievements?.hacktheboxRank ?? "—", link: htbHandle ? `https://app.hackthebox.com/users/${htbHandle}` : null, handle: htbHandle },
+              { label: "HackerOne reputation", value: achievementsLoading ? "…" : achievements?.hackeroneReputation ?? "—", link: hackeroneHandle ? `https://hackerone.com/${hackeroneHandle}` : null, handle: hackeroneHandle ? `@${hackeroneHandle}` : null },
+            ].map((stat, i) => (
+              <div
+                key={stat.label}
+                className="rounded-md border border-border/60 p-4 animate-scale-in opacity-0"
+                style={{ animationDelay: `${0.2 + i * 0.08}s` }}
+              >
+                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">{stat.label}</p>
+                <p className="font-display text-2xl mt-2 tabular-nums">{stat.value}</p>
+                {stat.link && stat.handle ? (
+                  <a className="text-xs text-saber-blue hover:underline" href={stat.link} target="_blank" rel="noreferrer">
+                    {stat.handle}
+                  </a>
+                ) : null}
+              </div>
+            ))}
           </div>
           <p className="text-[11px] text-muted-foreground mt-3">
-            Live stats come from public endpoints; GitHub push events count PushEvent items, while public events count all visible event types (push, create, watch, etc.), not repositories.
+            Live stats from public endpoints. GitHub push events count PushEvent items; public events count all visible types.
           </p>
         </div>
 
-        <div className="saber-card p-6 mb-12">
+        <div className="saber-card p-6 mb-12 animate-fade-up opacity-0" style={{ animationDelay: "0.25s" }}>
           <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="h-4 w-4 text-saber-blue" />
+            <Sparkles className="h-4 w-4 text-saber-blue animate-float" />
             <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Realm System</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {realms.map((r, i) => (
-              <LevelBadge key={r} label={r} variant={i < 2 ? "muted" : i < 4 ? "blue" : "purple"} />
+              <div key={r} className="animate-fade-up opacity-0" style={{ animationDelay: `${0.3 + i * 0.06}s` }}>
+                <LevelBadge label={r} variant={i < 2 ? "muted" : i < 4 ? "blue" : "purple"} />
+              </div>
             ))}
           </div>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
           <section>
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-6 animate-fade-left opacity-0" style={{ animationDelay: "0.35s" }}>
               <div className="h-10 w-10 rounded-md saber-border flex items-center justify-center shadow-glow-blue">
-                <Code2 className="h-5 w-5 text-saber-blue" />
+                <Code2 className="h-5 w-5 text-saber-blue animate-saber-pulse" />
               </div>
               <div>
                 <h2 className="font-display text-xl">Full Stack</h2>
@@ -164,8 +139,12 @@ const Skills = () => {
               />
             ) : (
               <div className="space-y-5">
-                {fullStackSkills.map((skill) => (
-                  <div key={skill.id} className="saber-card p-5">
+                {fullStackSkills.map((skill, i) => (
+                  <div
+                    key={skill.id}
+                    className="saber-card p-5 animate-fade-left opacity-0"
+                    style={{ animationDelay: `${0.4 + i * 0.07}s` }}
+                  >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-semibold">{skill.name}</p>
@@ -183,9 +162,9 @@ const Skills = () => {
           </section>
 
           <section>
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-6 animate-fade-right opacity-0" style={{ animationDelay: "0.35s" }}>
               <div className="h-10 w-10 rounded-md saber-border flex items-center justify-center shadow-glow-purple">
-                <Shield className="h-5 w-5 text-saber-purple" />
+                <Shield className="h-5 w-5 text-saber-purple animate-saber-pulse" />
               </div>
               <div>
                 <h2 className="font-display text-xl">Cybersecurity</h2>
@@ -203,8 +182,12 @@ const Skills = () => {
               />
             ) : (
               <div className="space-y-5">
-                {cyberSkills.map((skill) => (
-                  <div key={skill.id} className="saber-card p-5">
+                {cyberSkills.map((skill, i) => (
+                  <div
+                    key={skill.id}
+                    className="saber-card p-5 animate-fade-right opacity-0"
+                    style={{ animationDelay: `${0.4 + i * 0.07}s` }}
+                  >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-semibold">{skill.name}</p>

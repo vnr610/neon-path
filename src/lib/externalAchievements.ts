@@ -65,7 +65,11 @@ async function fetchGitHubPublicEvents30d(username: string): Promise<number | nu
 function parseLeetCodeSolved(data: unknown): number | null {
   if (!data || typeof data !== "object") return null;
   const o = data as Record<string, unknown>;
+  // alfa-leetcode-api shape: { solvedProblem: number }
+  if (typeof o.solvedProblem === "number") return o.solvedProblem;
+  // leetcode-stats-api shape: { totalSolved: number }
   if (typeof o.totalSolved === "number") return o.totalSolved;
+  // nested stats
   const stats = o.stats;
   if (stats && typeof stats === "object") {
     const s = stats as Record<string, unknown>;
@@ -75,6 +79,16 @@ function parseLeetCodeSolved(data: unknown): number | null {
   if (qs && typeof qs === "object") {
     const q = qs as Record<string, unknown>;
     if (typeof q.solvedTotal === "number") return q.solvedTotal;
+  }
+  // acSubmissionNum array shape
+  const acList = o.acSubmissionNum;
+  if (Array.isArray(acList)) {
+    for (const row of acList) {
+      if (row && typeof row === "object") {
+        const r = row as Record<string, unknown>;
+        if (r.difficulty === "All" && typeof r.count === "number") return r.count;
+      }
+    }
   }
   const submit = o.submitStats;
   if (submit && typeof submit === "object") {
@@ -94,7 +108,11 @@ function parseLeetCodeSolved(data: unknown): number | null {
 async function fetchLeetCodeSolved(username: string): Promise<number | null> {
   const enc = encodeURIComponent(username);
   const urls = [
+    // alfa-leetcode-api: returns { solvedProblem, easySolved, ... }
+    `https://alfa-leetcode-api.onrender.com/${enc}/solved`,
+    // leetcode-stats-api: returns { totalSolved, ... }
     `https://leetcode-stats-api.herokuapp.com/${enc}`,
+    // secondary vercel proxy
     `https://leetcode-api-pied.vercel.app/user/${enc}`,
   ];
   for (const url of urls) {
@@ -124,10 +142,15 @@ async function fetchHackTheBoxRank(username: string): Promise<string | null> {
 
 async function fetchHackerOneReputation(username: string): Promise<number | null> {
   try {
-    const res = await fetch(`https://hackerone.com/${username}.json`);
+    // The /<username>.json endpoint 404s for new accounts; hit the profile URL
+    // directly with an Accept: application/json header instead.
+    const res = await fetch(`https://hackerone.com/${encodeURIComponent(username)}`, {
+      headers: { Accept: "application/json" },
+    });
     if (!res.ok) return null;
-    const data = (await res.json()) as { profile?: { reputation?: number } };
-    return typeof data.profile?.reputation === "number" ? data.profile.reputation : null;
+    const data = (await res.json()) as { reputation?: number | null };
+    // reputation is null when the account exists but has no reports yet — show 0
+    return typeof data.reputation === "number" ? data.reputation : 0;
   } catch {
     return null;
   }

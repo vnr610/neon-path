@@ -97,9 +97,52 @@ export default {
           "0%": { opacity: "0", transform: "translateY(12px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "fade-left": {
+          "0%": { opacity: "0", transform: "translateX(-16px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        "fade-right": {
+          "0%": { opacity: "0", transform: "translateX(16px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        "scale-in": {
+          "0%": { opacity: "0", transform: "scale(0.92)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
         "float": {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-6px)" },
+        },
+        "scan-line": {
+          "0%": { transform: "translateY(-100%)" },
+          "100%": { transform: "translateY(100vh)" },
+        },
+        "glitch": {
+          "0%, 100%": { transform: "translate(0)" },
+          "20%": { transform: "translate(-2px, 1px)" },
+          "40%": { transform: "translate(2px, -1px)" },
+          "60%": { transform: "translate(-1px, 2px)" },
+          "80%": { transform: "translate(1px, -2px)" },
+        },
+        "progress-fill": {
+          "0%": { width: "0%" },
+          "100%": { width: "var(--progress-width)" },
+        },
+        "counter-up": {
+          "0%": { opacity: "0", transform: "translateY(8px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "border-trace": {
+          "0%": { "stroke-dashoffset": "1000" },
+          "100%": { "stroke-dashoffset": "0" },
+        },
+        "spin-slow": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" },
         },
       },
       animation: {
@@ -108,7 +151,14 @@ export default {
         "saber-pulse": "saber-pulse 2.4s ease-in-out infinite",
         "saber-ignite": "saber-ignite 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards",
         "fade-up": "fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards",
+        "fade-in": "fade-in 0.5s ease-out forwards",
+        "fade-left": "fade-left 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards",
+        "fade-right": "fade-right 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards",
+        "scale-in": "scale-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards",
         "float": "float 4s ease-in-out infinite",
+        "scan-line": "scan-line 3s linear infinite",
+        "glitch": "glitch 0.4s ease-in-out",
+        "spin-slow": "spin-slow 8s linear infinite",
       },
     },
   },

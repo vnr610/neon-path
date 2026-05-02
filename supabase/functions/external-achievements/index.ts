@@ -60,7 +60,20 @@ async function fetchGitHubActivity30d(username: string): Promise<{ pushes: numbe
 function parseLeetCodeSolved(data: unknown): number | null {
   if (!data || typeof data !== "object") return null;
   const o = data as Record<string, unknown>;
+  // alfa-leetcode-api shape: { solvedProblem: number }
+  if (typeof o.solvedProblem === "number") return o.solvedProblem;
+  // leetcode-stats-api shape: { totalSolved: number }
   if (typeof o.totalSolved === "number") return o.totalSolved;
+  // acSubmissionNum array (top-level)
+  const acList = o.acSubmissionNum;
+  if (Array.isArray(acList)) {
+    for (const row of acList) {
+      if (row && typeof row === "object") {
+        const r = row as Record<string, unknown>;
+        if (r.difficulty === "All" && typeof r.count === "number") return r.count;
+      }
+    }
+  }
   const submit = o.submitStats;
   if (submit && typeof submit === "object") {
     const ac = (submit as Record<string, unknown>).acSubmissionNum;
@@ -79,7 +92,11 @@ function parseLeetCodeSolved(data: unknown): number | null {
 async function fetchLeetCodeSolved(username: string): Promise<number | null> {
   const enc = encodeURIComponent(username);
   const urls = [
+    // alfa-leetcode-api: returns { solvedProblem, easySolved, ... }
+    `https://alfa-leetcode-api.onrender.com/${enc}/solved`,
+    // leetcode-stats-api: returns { totalSolved, ... }
     `https://leetcode-stats-api.herokuapp.com/${enc}`,
+    // secondary vercel proxy
     `https://leetcode-api-pied.vercel.app/user/${enc}`,
   ];
   for (const url of urls) {
@@ -112,54 +129,17 @@ async function fetchHackTheBoxRank(userId: string): Promise<string | null> {
 }
 
 async function fetchHackerOneReputation(username: string): Promise<number | null> {
-  const apiUser = Deno.env.get("HACKERONE_API_USERNAME");
-  const apiToken = Deno.env.get("HACKERONE_API_TOKEN");
-  if (!apiUser || !apiToken) {
-    console.warn("HackerOne secret missing");
-    return null;
-  }
   try {
-    const basic = btoa(`${apiUser}:${apiToken}`);
-    const reporterQuery = encodeURIComponent(`reporter:${username}`);
-    const hacktivityRes = await fetch(
-      `https://api.hackerone.com/v1/hackers/hacktivity?queryString=${reporterQuery}&page[size]=1`,
-      {
-        headers: {
-          Authorization: `Basic ${basic}`,
-          Accept: "application/json",
-        },
-      },
-    );
-    if (hacktivityRes.ok) {
-      const hacktivity = (await hacktivityRes.json()) as {
-        included?: Array<{ type?: string; attributes?: { username?: string; reputation?: number | null } }>;
-      };
-      const userObj = hacktivity.included?.find(
-        (x) => x.type === "user" && x.attributes?.username?.toLowerCase() === username.toLowerCase(),
-      );
-      const rep = userObj?.attributes?.reputation;
-      if (typeof rep === "number") return rep;
-    } else {
-      console.warn("HackerOne hacktivity fetch failed", hacktivityRes.status);
-    }
-
-    const userRes = await fetch(`https://api.hackerone.com/v1/users/${encodeURIComponent(username)}`, {
-      headers: {
-        Authorization: `Basic ${basic}`,
-        Accept: "application/json",
-      },
+    // The /<username>.json endpoint 404s for new accounts; hit the profile URL
+    // directly with an Accept: application/json header instead.
+    const res = await fetch(`https://hackerone.com/${encodeURIComponent(username)}`, {
+      headers: { Accept: "application/json" },
     });
-    if (!userRes.ok) {
-      console.warn("HackerOne user fetch failed", userRes.status);
-      return null;
-    }
-    const data = (await userRes.json()) as { data?: { attributes?: { reputation?: number | null } } };
-    const rep = data?.data?.attributes?.reputation;
-    if (typeof rep === "number") return rep;
-    // If auth + user lookup work but reputation is not exposed, treat as zero instead of unavailable.
-    return 0;
-  } catch (error) {
-    console.error("HackerOne fetch error", String(error));
+    if (!res.ok) return null;
+    const data = (await res.json()) as { reputation?: number | null };
+    // reputation is null when the account exists but has no reports yet — show 0
+    return typeof data.reputation === "number" ? data.reputation : 0;
+  } catch {
     return null;
   }
 }

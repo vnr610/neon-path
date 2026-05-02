@@ -2,14 +2,12 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AdminFormShell, type FormStatus } from "@/components/saber/AdminFormShell";
-import { FormField, FormSection, SaberInput, SaberTextarea } from "@/components/saber/FormField";
+import { FormField, FormSection, SaberInput } from "@/components/saber/FormField";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, LayoutTemplate } from "lucide-react";
 import { loadSiteHome, saveSiteHomeSettings } from "@/lib/content";
 
 const AdminHome = () => {
-  const [focusTitle, setFocusTitle] = useState("");
-  const [focusDescription, setFocusDescription] = useState("");
   const [githubUsername, setGithubUsername] = useState("");
   const [leetcodeUsername, setLeetcodeUsername] = useState("");
   const [hacktheboxUsername, setHacktheboxUsername] = useState("");
@@ -22,16 +20,12 @@ const AdminHome = () => {
     let cancelled = false;
     loadSiteHome().then((s) => {
       if (cancelled) return;
-      setFocusTitle(s.focusTitle ?? "");
-      setFocusDescription(s.focusDescription ?? "");
       setGithubUsername(s.githubUsername ?? "");
       setLeetcodeUsername(s.leetcodeUsername ?? "");
       setHacktheboxUsername(s.hacktheboxUsername ?? "");
       setHackeroneUsername(s.hackeroneUsername ?? "");
     });
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -40,12 +34,7 @@ const AdminHome = () => {
     setStatusMessage(undefined);
     setErrors([]);
 
-    const title = focusTitle.trim() || null;
-    const description = focusDescription.trim() || null;
-
     const ok = await saveSiteHomeSettings({
-      focusTitle: title,
-      focusDescription: description,
       githubUsername: githubUsername.trim() || null,
       leetcodeUsername: leetcodeUsername.trim() || null,
       hacktheboxUsername: hacktheboxUsername.trim() || null,
@@ -59,55 +48,41 @@ const AdminHome = () => {
     }
 
     setStatus("success");
-    setStatusMessage("Landing page focus updated. Changes appear on the home page immediately for visitors.");
+    setStatusMessage("Handles saved. Skills scan will use these on next run.");
+  };
+
+  const handleDiscard = () => {
+    loadSiteHome().then((s) => {
+      setGithubUsername(s.githubUsername ?? "");
+      setLeetcodeUsername(s.leetcodeUsername ?? "");
+      setHacktheboxUsername(s.hacktheboxUsername ?? "");
+      setHackeroneUsername(s.hackeroneUsername ?? "");
+      setStatus("idle");
+      setStatusMessage(undefined);
+      setErrors([]);
+    });
   };
 
   return (
     <AdminLayout title="Home page">
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
         <AdminFormShell
-          eyebrow="landing spotlight"
-          title="Current focus"
-          description="Headline and copy for the “What I'm forging now” section on the public home page. Leave blank to fall back to your highest-progress skill."
-          submitLabel="Publish to home"
+          eyebrow="profile handles"
+          title="Sync handles"
+          description="External profile usernames used to sync achievements on the Skills page and auto-derive skill progress."
+          submitLabel="Save handles"
           onSubmit={handleSubmit}
+          onDiscard={handleDiscard}
           status={status}
           statusMessage={statusMessage}
           errors={errors}
         >
-          <FormSection title="Hero focus block">
-            <FormField id="focusTitle" label="Headline" optional hint="Short title — e.g. current certification, stack, or mission.">
-              <SaberInput
-                name="focusTitle"
-                value={focusTitle}
-                onChange={(e) => setFocusTitle(e.target.value)}
-                placeholder="e.g. Deepening Kubernetes & cloud security"
-                maxLength={120}
-              />
-            </FormField>
-            <FormField
-              id="focusDescription"
-              label="Description"
-              optional
-              hint="One or two sentences. Supports plain text; keep it readable on the landing page."
-            >
-              <SaberTextarea
-                name="focusDescription"
-                value={focusDescription}
-                onChange={(e) => setFocusDescription(e.target.value)}
-                rows={5}
-                placeholder="What you're learning, shipping, or prioritising right now."
-                maxLength={600}
-              />
-            </FormField>
-          </FormSection>
-
           <FormSection title="Sync handles">
             <FormField
               id="githubUsername"
               label="GitHub username"
               optional
-              hint="Only the handle (not the full URL). Example: vnr610 → https://github.com/vnr610"
+              hint="Handle only — e.g. vnr610"
             >
               <SaberInput
                 name="githubUsername"
@@ -121,7 +96,7 @@ const AdminHome = () => {
               id="leetcodeUsername"
               label="LeetCode username"
               optional
-              hint="Handle from your profile URL: leetcode.com/u/… — e.g. vnrbl0"
+              hint="From leetcode.com/u/… — e.g. vnrbl0"
             >
               <SaberInput
                 name="leetcodeUsername"
@@ -133,9 +108,9 @@ const AdminHome = () => {
             </FormField>
             <FormField
               id="hacktheboxUsername"
-              label="Hack The Box profile id"
+              label="Hack The Box profile ID"
               optional
-              hint="The segment after /users/ in your HTB profile URL (often numeric), e.g. 2529205"
+              hint="Segment after /users/ in your HTB URL — often numeric"
             >
               <SaberInput
                 name="hacktheboxUsername"

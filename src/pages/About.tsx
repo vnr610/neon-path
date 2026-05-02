@@ -1,5 +1,6 @@
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { PageHeader } from "@/components/saber/PageHeader";
+import { EmptyGlyph } from "@/components/saber/EmptyGlyph";
 import { User } from "lucide-react";
 
 const About = () => {
@@ -9,18 +10,22 @@ const About = () => {
         <PageHeader title="About" subtitle="The path, the discipline, the philosophy." />
 
         <div className="grid md:grid-cols-[200px_1fr] gap-10">
+          {/* Profile avatar */}
           <div>
-            <div className="aspect-square saber-card flex items-center justify-center">
-              <User className="h-12 w-12 text-muted-foreground/50" />
+            <div className="aspect-square saber-card flex items-center justify-center overflow-hidden">
+              <EmptyGlyph icon={User} />
             </div>
             <div className="mt-4 space-y-2">
               <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Handle</p>
               <p className="font-display text-sm">VNR610</p>
               <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mt-3">Realm</p>
               <p className="font-mono text-xs text-saber-blue">Full Stack · Cybersec</p>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mt-3">Location</p>
+              <p className="font-mono text-xs text-muted-foreground">Nepal · Asia/Kathmandu</p>
             </div>
           </div>
 
+          {/* Bio */}
           <article className="prose prose-invert max-w-none">
             <div className="saber-card p-8 sm:p-10 space-y-4 not-prose">
               <p className="text-xs uppercase tracking-[0.3em] text-saber-blue mb-2">// bio.md</p>
@@ -30,7 +35,9 @@ const About = () => {
               </p>
               <div className="border-t border-border/60 pt-4 mt-6">
                 <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Status</p>
-                <p className="text-sm font-mono mt-1"><span className="text-saber-blue">●</span> Awaiting content</p>
+                <p className="text-sm font-mono mt-1">
+                  <span className="text-saber-blue animate-pulse">●</span> Forging the path
+                </p>
               </div>
             </div>
           </article>

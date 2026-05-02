@@ -1,216 +1,317 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { AdminFormShell, type FormStatus } from "@/components/saber/AdminFormShell";
-import {
-  FormField,
-  FormSection,
-  SaberInput,
-  SaberTextarea,
-  SaberDatePicker,
-} from "@/components/saber/FormField";
 import { Button } from "@/components/ui/button";
-import { Edit3, Trash2 } from "lucide-react";
+import { Award, Code2, Edit3, GitCommitVertical, RefreshCw, Shield, Trash2 } from "lucide-react";
 import {
-  addTimelineEntry,
-  deleteTimelineEntry,
-  loadTimelineEntries,
-  updateTimelineEntry,
-  type TimelineEntry,
+  addTimelineEntry, deleteTimelineEntry, formatDate,
+  loadBlogPosts, loadCertifications, loadProjects,
+  loadSiteHome, loadSkills, loadTimelineEntries,
+  updateTimelineEntry, type TimelineEntry,
 } from "@/lib/content";
+import { loadExternalAchievements } from "@/lib/externalAchievements";
 
-const blankTimelineForm = {
-  realm: "",
-  title: "",
-  desc: "",
-};
+type ScanStatus = "idle" | "scanning" | "done" | "error";
+type ScannedEntry = Omit<TimelineEntry, "id" | "createdAt">;
+
+// ─── Scan logic ───────────────────────────────────────────────────────────────
+
+async function buildEntries(log: (m: string) => void): Promise<ScannedEntry[]> {
+  const entries: ScannedEntry[] = [];
+
+  log("Loading handles…");
+  const home = await loadSiteHome();
+
+  log("Fetching external profiles…");
+  const achievements = await loadExternalAchievements({
+    githubUsername: home.githubUsername,
+    leetcodeUsername: home.leetcodeUsername,
+    hacktheboxUsername: home.hacktheboxUsername,
+    hackeroneUsername: home.hackeroneUsername,
+  });
+
+  log("Loading site content…");
+  const [projects, posts, certs, skills] = await Promise.all([
+    loadProjects(), loadBlogPosts(), loadCertifications(), loadSkills(),
+  ]);
+  log(`  ${projects.length} projects · ${posts.length} writeups · ${certs.length} certs · ${skills.length} skills`);
+
+  // Writeups
+  for (const post of posts) {
+    const isCyber = post.tags.some((t) =>
+      ["ctf", "pentest", "security", "hack", "exploit", "osint", "forensics",
+       "xss", "sqli", "rce", "bug bounty", "hackthebox", "tryhackme"].some((k) =>
+        t.toLowerCase().includes(k)));
+    entries.push({
+      date: post.createdAt,
+      realm: isCyber ? "Cybersecurity" : "Full Stack",
+      title: `Published writeup: "${post.title}"`,
+      desc: post.excerpt?.trim() || undefined,
+    });
+  }
+
+  // Projects
+  for (const project of projects) {
+    entries.push({
+      date: project.createdAt,
+      realm: "Full Stack",
+      title: `Forged project: ${project.name}`,
+      desc: project.desc?.slice(0, 200) || undefined,
+    });
+  }
+
+  // Certifications
+  for (const cert of certs) {
+    entries.push({
+      date: cert.date,
+      realm: "Certification",
+      title: `Earned: ${cert.name}`,
+      desc: `Issued by ${cert.issuer}`,
+    });
+  }
+
+  // GitHub
+  if (home.githubUsername && (achievements.githubPushes30d ?? 0) > 0) {
+    const p = achievements.githubPushes30d!;
+    entries.push({
+      date: new Date().toISOString(),
+      realm: "Full Stack",
+      title: `${p} GitHub push event${p > 1 ? "s" : ""} in the last 30 days`,
+      desc: `Active coding streak on @${home.githubUsername.replace(/^@/, "")}`,
+    });
+    log(`  GitHub: ${p} pushes`);
+  }
+
+  // LeetCode
+  if ((achievements.leetcodeSolved ?? 0) > 0) {
+    entries.push({
+      date: new Date().toISOString(),
+      realm: "Full Stack",
+      title: `${achievements.leetcodeSolved} LeetCode problem${achievements.leetcodeSolved === 1 ? "" : "s"} solved`,
+      desc: "Algorithm and data structure practice on LeetCode",
+    });
+    log(`  LeetCode: ${achievements.leetcodeSolved} solved`);
+  }
+
+  // HackerOne
+  if (home.hackeroneUsername && achievements.hackeroneReputation !== null) {
+    const rep = achievements.hackeroneReputation ?? 0;
+    entries.push({
+      date: new Date().toISOString(),
+      realm: "Cybersecurity",
+      title: `HackerOne reputation: ${rep} point${rep !== 1 ? "s" : ""}`,
+      desc: `Bug bounty activity on HackerOne (@${home.hackeroneUsername.replace(/^@/, "")})`,
+    });
+    log(`  HackerOne: ${rep} rep`);
+  }
+
+  // HTB
+  if (achievements.hacktheboxRank) {
+    entries.push({
+      date: new Date().toISOString(),
+      realm: "Cybersecurity",
+      title: `Hack The Box rank: ${achievements.hacktheboxRank}`,
+      desc: "Current standing on the HTB platform",
+    });
+    log(`  HTB: ${achievements.hacktheboxRank}`);
+  }
+
+  // Notable skills (knight+)
+  const notable = skills.filter((s) =>
+    ["knight", "master", "grandmaster"].includes(s.level.toLowerCase()));
+  for (const skill of notable) {
+    entries.push({
+      date: skill.createdAt,
+      realm: skill.category === "fullstack" ? "Full Stack" : "Cybersecurity",
+      title: `Skill milestone: ${skill.name} — ${skill.level}`,
+      desc: `Progress: ${skill.progress}%`,
+    });
+  }
+  if (notable.length > 0) log(`  ${notable.length} skill milestones`);
+
+  entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  log(`Total: ${entries.length} entries.`);
+  return entries;
+}
+
+// ─── Icon helper ──────────────────────────────────────────────────────────────
+
+function RealmIcon({ realm }: { realm: string }) {
+  const r = realm.toLowerCase();
+  if (r.includes("cyber") || r.includes("security") || r.includes("hack"))
+    return <Shield className="h-4 w-4 text-muted-foreground shrink-0" />;
+  if (r.includes("cert"))
+    return <Award className="h-4 w-4 text-muted-foreground shrink-0" />;
+  return <Code2 className="h-4 w-4 text-muted-foreground shrink-0" />;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 const AdminTimeline = () => {
-  const [date, setDate] = useState<Date | undefined>(undefined);
   const [entries, setEntries] = useState<TimelineEntry[]>([]);
+  const [scanStatus, setScanStatus] = useState<ScanStatus>("idle");
+  const [scanLog, setScanLog] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState(blankTimelineForm);
-  const [status, setStatus] = useState<FormStatus>("idle");
-  const [statusMessage, setStatusMessage] = useState<string | undefined>(undefined);
-  const [errors, setErrors] = useState<string[]>([]);
+  const [editForm, setEditForm] = useState({ title: "", desc: "", realm: "" });
 
-  useEffect(() => {
-    const fetchEntries = async () => {
-      const data = await loadTimelineEntries();
-      setEntries(data);
-    };
-    fetchEntries();
+  const appendLog = useCallback((msg: string) => {
+    setScanLog((prev) => [...prev, msg]);
   }, []);
 
-  const resetForm = () => {
-    setEditingId(null);
-    setDate(undefined);
-    setFormData(blankTimelineForm);
-    setStatus("idle");
-    setStatusMessage(undefined);
-    setErrors([]);
-  };
+  const runScan = useCallback(async () => {
+    setScanStatus("scanning");
+    setScanLog([]);
 
-  const handleEdit = (entry: TimelineEntry) => {
-    setEditingId(entry.id);
-    setDate(new Date(entry.date));
-    setFormData({ realm: entry.realm, title: entry.title, desc: entry.desc ?? "" });
-    setStatus("ready");
-    setStatusMessage("Editing existing timeline entry.");
-    setErrors([]);
-  };
+    try {
+      const derived = await buildEntries(appendLog);
+
+      appendLog("Syncing to database…");
+      const existing = await loadTimelineEntries();
+
+      // Replace all — timeline is fully derived, no manual entries to preserve
+      for (const e of existing) await deleteTimelineEntry(e.id);
+      for (const e of derived) {
+        await addTimelineEntry({ date: e.date, realm: e.realm, title: e.title, desc: e.desc });
+      }
+
+      const refreshed = await loadTimelineEntries();
+      setEntries(refreshed);
+      setScanStatus("done");
+      appendLog(`Saved ${refreshed.length} entries.`);
+    } catch (err) {
+      appendLog(`Error: ${String(err)}`);
+      setScanStatus("error");
+    }
+  }, [appendLog]);
+
+  // Auto-scan on mount
+  useEffect(() => { void runScan(); }, [runScan]);
 
   const handleDelete = async (id: string) => {
     await deleteTimelineEntry(id);
-    const data = await loadTimelineEntries();
-    setEntries(data);
-    if (editingId === id) resetForm();
+    setEntries(await loadTimelineEntries());
+    if (editingId === id) setEditingId(null);
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setStatus("submitting");
-    setStatusMessage(undefined);
-    setErrors([]);
-
-    const realm = formData.realm.trim();
-    const title = formData.title.trim();
-    const desc = formData.desc.trim();
-    const nextErrors: string[] = [];
-
-    if (!date) nextErrors.push("Date is required.");
-    if (!realm) nextErrors.push("Realm is required.");
-    if (!title) nextErrors.push("Title is required.");
-
-    if (nextErrors.length > 0) {
-      setErrors(nextErrors);
-      setStatus("error");
-      return;
-    }
-
-    if (editingId) {
-      await updateTimelineEntry(editingId, {
-        date: date.toISOString(),
-        realm,
-        title,
-        desc: desc || undefined,
-      });
-      setStatus("success");
-      setStatusMessage("Timeline updated successfully.");
-    } else {
-      await addTimelineEntry({
-        date: date.toISOString(),
-        realm,
-        title,
-        desc: desc || undefined,
-      });
-      setStatus("success");
-      setStatusMessage("Timeline entry engraved.");
-    }
-
-    const data = await loadTimelineEntries();
-    setEntries(data);
-    resetForm();
+  const handleEditSave = async (id: string) => {
+    await updateTimelineEntry(id, {
+      title: editForm.title.trim(),
+      realm: editForm.realm.trim(),
+      desc: editForm.desc.trim() || undefined,
+    });
+    setEntries(await loadTimelineEntries());
+    setEditingId(null);
   };
 
   return (
     <AdminLayout title="Timeline">
-      <div className="grid gap-8 lg:grid-cols-[minmax(420px,1fr)_340px]">
-        <AdminFormShell
-          eyebrow={editingId ? "edit entry" : "new entry"}
-          title={editingId ? "Update Timeline Entry" : "Add Timeline Entry"}
-          description="Mark a milestone on the journey — small wins compound into mastery."
-          submitLabel={editingId ? "Save Changes" : "Engrave Entry"}
-          onSubmit={handleSubmit}
-          status={status}
-          statusMessage={statusMessage}
-          errors={errors}
-        >
-          <FormSection title="When & Where">
-            <div className="grid sm:grid-cols-2 gap-5">
-              <FormField id="date" label="Date" required>
-                <SaberDatePicker
-                  value={date}
-                  onChange={setDate}
-                  placeholder="Select milestone date"
-                  disabledDates={(d) => d > new Date()}
-                />
-              </FormField>
-              <FormField id="realm" label="Realm" required hint="Which discipline this milestone belongs to.">
-                <SaberInput
-                  name="realm"
-                  value={formData.realm}
-                  onChange={(e) => setFormData({ ...formData, realm: e.target.value })}
-                  placeholder="Full Stack / Cyber"
-                  maxLength={40}
-                />
-              </FormField>
-            </div>
-          </FormSection>
-
-          <FormSection title="The Milestone">
-            <FormField id="title" label="Title" required>
-              <SaberInput
-                name="title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="A single line worth remembering"
-                maxLength={100}
-              />
-            </FormField>
-            <FormField id="desc" label="Description" optional hint="Context, what changed, what was learned.">
-              <SaberTextarea
-                name="desc"
-                value={formData.desc}
-                onChange={(e) => setFormData({ ...formData, desc: e.target.value })}
-                rows={5}
-                placeholder="What happened? Why does it matter?"
-                maxLength={800}
-              />
-            </FormField>
-          </FormSection>
-        </AdminFormShell>
-
-        <section className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-eyebrow-bright text-[10px] uppercase tracking-[0.32em]">Saved timeline</p>
-              <p className="text-sm text-muted-foreground">Keep the path in order and update milestones as needed.</p>
-            </div>
-            {editingId && (
-              <Button variant="ghost" size="sm" onClick={resetForm}>
-                Cancel edit
-              </Button>
-            )}
+      {/* ── Status panel ── */}
+      <div className="saber-card p-5 mb-8">
+        <div className="flex items-center justify-between gap-4 mb-3">
+          <div className="flex items-center gap-2">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                scanStatus === "scanning" ? "bg-foreground/60 animate-pulse" :
+                scanStatus === "done" ? "bg-foreground/80" :
+                scanStatus === "error" ? "bg-destructive" : "bg-muted-foreground/40"
+              }`}
+            />
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+              {scanStatus === "scanning" ? "Scanning & syncing…" :
+               scanStatus === "done" ? `Auto-synced · ${entries.length} entries` :
+               scanStatus === "error" ? "Scan failed" : "Idle"}
+            </p>
           </div>
+          <Button
+            size="sm" variant="outline"
+            className="saber-border font-mono text-[10px] uppercase tracking-[0.2em]"
+            onClick={runScan}
+            disabled={scanStatus === "scanning"}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${scanStatus === "scanning" ? "animate-spin" : ""}`} />
+            Re-scan
+          </Button>
+        </div>
 
-          {entries.length === 0 ? (
-            <div className="saber-card p-6 text-muted-foreground">No timeline entries yet.</div>
-          ) : (
-            <div className="space-y-3">
-              {entries.map((entry) => (
-                <article key={entry.id} className="saber-card p-5">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">{new Date(entry.date).toLocaleDateString()}</p>
-                      <h3 className="mt-2 text-lg font-semibold">{entry.title}</h3>
-                      <p className="mt-2 text-sm text-muted-foreground">{entry.realm}</p>
-                      {entry.desc && <p className="mt-3 text-sm text-muted-foreground">{entry.desc}</p>}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="button" variant="outline" size="sm" onClick={() => handleEdit(entry)}>
-                        <Edit3 className="h-4 w-4" /> Edit
-                      </Button>
-                      <Button type="button" variant="destructive" size="sm" onClick={() => handleDelete(entry.id)}>
-                        <Trash2 className="h-4 w-4" /> Delete
-                      </Button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+        <div className="rounded-md bg-background/60 border border-border/40 p-3 font-mono text-[10px] space-y-0.5 max-h-40 overflow-y-auto">
+          {scanLog.length === 0 ? (
+            <p className="text-muted-foreground/40">Waiting…</p>
+          ) : scanLog.map((line, i) => (
+            <p key={i} className="text-muted-foreground leading-relaxed">
+              <span className="text-foreground/20 mr-2">›</span>{line}
+            </p>
+          ))}
+        </div>
       </div>
+
+      {/* ── Saved entries ── */}
+      <div className="mb-4">
+        <p className="text-eyebrow-bright text-[10px] uppercase tracking-[0.32em]">Timeline</p>
+        <p className="text-sm text-muted-foreground">
+          {entries.length === 0 ? "Scanning…" : `${entries.length} entries`}
+        </p>
+      </div>
+
+      {entries.length > 0 && (
+        <div className="space-y-2">
+          {entries.map((entry) => (
+            <article key={entry.id} className="saber-card p-4">
+              {editingId === entry.id ? (
+                <div className="space-y-3">
+                  <input
+                    value={editForm.title}
+                    onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+                    className="w-full rounded-md bg-background/40 border border-border/60 px-3 py-2 text-sm font-mono"
+                    placeholder="Title"
+                  />
+                  <input
+                    value={editForm.realm}
+                    onChange={(e) => setEditForm((f) => ({ ...f, realm: e.target.value }))}
+                    className="w-full rounded-md bg-background/40 border border-border/60 px-3 py-2 text-sm font-mono"
+                    placeholder="Realm"
+                  />
+                  <textarea
+                    value={editForm.desc}
+                    onChange={(e) => setEditForm((f) => ({ ...f, desc: e.target.value }))}
+                    className="w-full rounded-md bg-background/40 border border-border/60 px-3 py-2 text-sm font-mono resize-none"
+                    rows={2}
+                    placeholder="Description (optional)"
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => handleEditSave(entry.id)}>Save</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-3">
+                  <RealmIcon realm={entry.realm} />
+                  <div className="flex-1 min-w-0 mt-0.5">
+                    <p className="text-sm font-semibold leading-snug">{entry.title}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {formatDate(entry.date)} · {entry.realm}
+                    </p>
+                    {entry.desc && <p className="text-xs text-muted-foreground/70 mt-1">{entry.desc}</p>}
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <Button
+                      type="button" variant="ghost" size="sm"
+                      onClick={() => { setEditingId(entry.id); setEditForm({ title: entry.title, realm: entry.realm, desc: entry.desc ?? "" }); }}
+                    >
+                      <Edit3 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button" variant="ghost" size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(entry.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
     </AdminLayout>
   );
 };

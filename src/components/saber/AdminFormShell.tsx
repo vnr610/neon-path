@@ -83,6 +83,7 @@ interface AdminFormShellProps {
   submitLabel?: string;
   discardLabel?: string;
   onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void;
+  onDiscard?: () => void;
   status?: FormStatus;
   statusMessage?: string;
   errors?: string[];
@@ -96,6 +97,7 @@ export function AdminFormShell({
   submitLabel = "Save Entry",
   discardLabel = "Discard",
   onSubmit,
+  onDiscard,
   status = "idle",
   statusMessage,
   errors = [],
@@ -134,6 +136,7 @@ export function AdminFormShell({
               type="button"
               variant="ghost"
               className="text-eyebrow text-muted-foreground hover:text-foreground"
+              onClick={onDiscard}
             >
               {discardLabel}
             </Button>

@@ -129,6 +129,7 @@ const AdminCertifications = () => {
           description="Record an earned credential — verification links and badge art keep it credible."
           submitLabel={editingId ? "Save Changes" : "Seal Credential"}
           onSubmit={handleSubmit}
+          onDiscard={resetForm}
           status={status}
           statusMessage={statusMessage}
           errors={errors}

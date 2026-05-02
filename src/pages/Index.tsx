@@ -5,23 +5,21 @@ import { SiteLayout } from "@/components/layout/SiteLayout";
 import { EmptyState } from "@/components/saber/EmptyState";
 import { SectionHeader } from "@/components/saber/SectionHeader";
 import { LevelBadge } from "@/components/saber/LevelBadge";
+import { LightSaber3D } from "@/components/saber/LightSaber3D";
 import { Button } from "@/components/ui/button";
 import {
   loadFeaturedProjectsForHome,
-  loadSiteHome,
   loadSkills,
   loadTimelineEntries,
   formatDate,
   type Project,
   type Skill,
   type TimelineEntry,
-  type SiteHomeSettings,
 } from "@/lib/content";
 
 const slotGlow = ["blue", "purple", "blue"] as const;
 
 type HomeState = {
-  settings: SiteHomeSettings;
   featured: Project[];
   milestones: TimelineEntry[];
   skills: Skill[];
@@ -33,15 +31,13 @@ const Index = () => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [settings, featured, timeline, skills] = await Promise.all([
-        loadSiteHome(),
+      const [featured, timeline, skills] = await Promise.all([
         loadFeaturedProjectsForHome(),
         loadTimelineEntries(),
         loadSkills(),
       ]);
       if (cancelled) return;
       setHome({
-        settings,
         featured,
         milestones: timeline.slice(0, 3),
         skills,
@@ -52,22 +48,18 @@ const Index = () => {
     };
   }, []);
 
-  const focusTitle = home?.settings.focusTitle?.trim() || null;
-  const focusDescription = home?.settings.focusDescription?.trim() || null;
   const topSkill =
     home?.skills && home.skills.length > 0
       ? [...home.skills].sort((a, b) => b.progress - a.progress)[0]
       : null;
 
-  const showFocusCard = Boolean(focusTitle || focusDescription || topSkill);
-  const focusHeading = focusTitle ?? (topSkill ? topSkill.name : null);
-  const focusBody =
-    focusDescription ??
-    (topSkill
-      ? `${topSkill.level} · ${topSkill.progress}% along the path (${
-          topSkill.category === "fullstack" ? "Full stack" : "Cybersecurity"
-        }). Set a custom message in the admin Home page panel.`
-      : null);
+  const showFocusCard = Boolean(topSkill);
+  const focusHeading = topSkill ? topSkill.name : null;
+  const focusBody = topSkill
+    ? `${topSkill.level} · ${topSkill.progress}% along the path (${
+        topSkill.category === "fullstack" ? "Full Stack" : "Cybersecurity"
+      })`
+    : null;
 
   return (
     <SiteLayout>
@@ -77,43 +69,51 @@ const Index = () => {
         <div className="absolute inset-0 bg-gradient-hero pointer-events-none" />
 
         <div className="container relative py-24 sm:py-32 md:py-40">
-          <div className="max-w-3xl">
-            <div className="flex items-center gap-3 mb-6 animate-fade-up opacity-0" style={{ animationDelay: "0.1s" }}>
-              <span className="h-px w-10 bg-saber-blue shadow-glow-blue" />
-              <span className="text-eyebrow">Initializing Realm</span>
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-0">
+            {/* Text content */}
+            <div className="max-w-3xl flex-1">
+              <div className="flex items-center gap-3 mb-6 animate-fade-up opacity-0" style={{ animationDelay: "0.1s" }}>
+                <span className="h-px w-10 bg-saber-blue shadow-glow-blue" />
+                <span className="text-eyebrow">Initializing Realm</span>
+              </div>
+
+              <h1 className="text-display-xl mb-6 animate-fade-up opacity-0" style={{ animationDelay: "0.2s" }}>
+                <span className="saber-text">VNR610</span>
+                <span className="text-foreground">.</span>
+              </h1>
+
+              <p className="text-lead mb-3 max-w-xl animate-fade-up opacity-0" style={{ animationDelay: "0.35s" }}>
+                Mastering <span className="text-foreground font-medium">Full Stack</span> &{" "}
+                <span className="text-foreground font-medium">Cybersecurity</span>
+              </p>
+              <p className="text-mono mb-10 animate-fade-up opacity-0" style={{ animationDelay: "0.45s" }}>
+                <span className="text-foreground">{">"}</span> vnr610@realm:~$ forging path through the code
+              </p>
+
+              <div className="flex flex-wrap items-center gap-3 animate-fade-up opacity-0" style={{ animationDelay: "0.6s" }}>
+                <Button asChild size="lg" className="bg-gradient-saber hover:opacity-90 text-primary-foreground border-0 shadow-glow-blue">
+                  <Link to="/projects">
+                    Explore Realm <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="outline" className="saber-border bg-background/40">
+                  <Link to="/about">About Me</Link>
+                </Button>
+                <Button asChild size="lg" variant="outline" className="saber-border bg-background/40">
+                  <Link to="/writeups">Writeups</Link>
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap gap-2 mt-10 animate-fade-up opacity-0" style={{ animationDelay: "0.8s" }}>
+                <LevelBadge label="Full Stack" variant="blue" />
+                <LevelBadge label="Cybersecurity" variant="purple" />
+                <LevelBadge label="Apprentice" variant="muted" />
+              </div>
             </div>
 
-            <h1 className="text-display-xl mb-6 animate-fade-up opacity-0" style={{ animationDelay: "0.2s" }}>
-              <span className="saber-text">VNR610</span>
-              <span className="text-foreground">.</span>
-            </h1>
-
-            <p className="text-lead mb-3 max-w-xl animate-fade-up opacity-0" style={{ animationDelay: "0.35s" }}>
-              Mastering <span className="text-foreground font-medium">Full Stack</span> &{" "}
-              <span className="text-foreground font-medium">Cybersecurity</span>
-            </p>
-            <p className="text-mono mb-10 animate-fade-up opacity-0" style={{ animationDelay: "0.45s" }}>
-              <span className="text-foreground">{">"}</span> vnr610@realm:~$ forging path through the code
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3 animate-fade-up opacity-0" style={{ animationDelay: "0.6s" }}>
-              <Button asChild size="lg" className="bg-gradient-saber hover:opacity-90 text-primary-foreground border-0 shadow-glow-blue">
-                <Link to="/projects">
-                  Explore Realm <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="saber-border bg-background/40">
-                <Link to="/about">About Me</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="saber-border bg-background/40">
-                <Link to="/writeups">Writeups</Link>
-              </Button>
-            </div>
-
-            <div className="flex flex-wrap gap-2 mt-10 animate-fade-up opacity-0" style={{ animationDelay: "0.8s" }}>
-              <LevelBadge label="Full Stack" variant="blue" />
-              <LevelBadge label="Cybersecurity" variant="purple" />
-              <LevelBadge label="Apprentice" variant="muted" />
+            {/* 3D Lightsaber — right side on large screens, centered below on mobile */}
+            <div className="flex-shrink-0 flex items-center justify-center animate-fade-in opacity-0 lg:absolute lg:right-0 lg:top-1/2 lg:-translate-y-1/2 lg:pr-8" style={{ animationDelay: "0.3s" }}>
+              <LightSaber3D width={200} height={380} className="drop-shadow-[0_0_40px_hsl(0_0%_100%/0.08)]" />
             </div>
           </div>
         </div>
@@ -126,15 +126,15 @@ const Index = () => {
         <SectionHeader
           eyebrow="Current Focus"
           title="What I'm forging now"
-          description="The active disciplines and technologies in training — edited from the admin Home page, or inferred from your top skill."
+          description="The highest-progress skill from the active codex — updated automatically when skills are scanned."
         />
         {!home ? (
           <div className="saber-card p-10 text-sm text-muted-foreground animate-pulse">Loading focus…</div>
         ) : !showFocusCard ? (
           <EmptyState
             icon={Target}
-            title="No active focus declared"
-            description="Open Admin → Home page to set a headline and description, or add skills so the realm can infer your current emphasis."
+            title="No active focus yet"
+            description="Run the skills scan in Admin → Skills to auto-derive your current focus from real activity."
             hint="Discipline begins with a single intent."
             status="focus :: undeclared"
           />

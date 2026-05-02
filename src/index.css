@@ -179,3 +179,37 @@
   .glow-blue { box-shadow: var(--glow-blue); }
   .glow-purple { box-shadow: var(--glow-purple); }
 }
+
+/* ── Page animation utilities ─────────────────────────────────────────────── */
+@layer utilities {
+  /* Reusable stagger helper — apply to children via JS delay */
+  .anim-child {
+    opacity: 0;
+  }
+
+  /* Scan-line overlay for cyber pages */
+  .scan-overlay {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .scan-overlay::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.06), transparent);
+    animation: scan-line 4s linear infinite;
+  }
+
+  /* Logo spin ring */
+  .logo-ring {
+    animation: spin-slow 8s linear infinite;
+  }
+  .logo-ring-reverse {
+    animation: spin-slow 12s linear infinite reverse;
+  }
+}

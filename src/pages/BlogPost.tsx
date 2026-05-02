@@ -66,14 +66,14 @@ const BlogArticleView = () => {
   return (
     <SiteLayout>
       <article className="container py-16 max-w-5xl">
-        <Button asChild variant="ghost" size="sm" className="mb-8 -ml-2 text-muted-foreground hover:text-saber-blue">
+        <Button asChild variant="ghost" size="sm" className="mb-8 -ml-2 text-muted-foreground hover:text-saber-blue animate-fade-in opacity-0" style={{ animationDelay: "0.05s" }}>
           <Link to="/writeups">
             <ArrowLeft className="h-4 w-4 mr-2" />
             All writeups
           </Link>
         </Button>
 
-        <header className="mb-10">
+        <header className="mb-10 animate-fade-up opacity-0" style={{ animationDelay: "0.1s" }}>
           {post.thumbnailUrl ? (
             <img src={post.thumbnailUrl} alt="" className="w-full aspect-[16/8] object-cover rounded-lg border border-border/60 mb-7" />
           ) : null}
@@ -101,7 +101,9 @@ const BlogArticleView = () => {
           )}
         </header>
 
-        <BlogPostBody content={post.content} contentFormat={post.contentFormat} />
+        <div className="animate-fade-up opacity-0" style={{ animationDelay: "0.2s" }}>
+          <BlogPostBody content={post.content} contentFormat={post.contentFormat} />
+        </div>
 
         {neighbors && (neighbors.older || neighbors.newer) && (
           <nav

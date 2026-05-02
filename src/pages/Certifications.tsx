@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { PageHeader } from "@/components/saber/PageHeader";
 import { EmptyState } from "@/components/saber/EmptyState";
-import { Award } from "lucide-react";
-import { loadCertifications, type Certification, formatDate } from "@/lib/content";
+import { Award } from "lucide-react";import { loadCertifications, type Certification, formatDate } from "@/lib/content";
 
 const Certifications = () => {
   const [certifications, setCertifications] = useState<Certification[]>([]);
@@ -31,22 +30,31 @@ const Certifications = () => {
           />
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
-            {certifications.map((cert) => (
-              <article key={cert.id} className="saber-card p-6">
+            {certifications.map((cert, i) => (
+              <article
+                key={cert.id}
+                className="saber-card p-6 animate-scale-in opacity-0 group hover:-translate-y-1 transition-transform duration-300"
+                style={{ animationDelay: `${0.1 + i * 0.08}s` }}
+              >
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">{cert.issuer}</p>
                     <h2 className="mt-2 text-xl font-semibold">{cert.name}</h2>
                   </div>
                   {cert.badge && (
-                    <img src={cert.badge} alt={`${cert.name} badge`} className="h-14 w-14 rounded-md object-cover" />
+                    <img
+                      src={cert.badge}
+                      alt={`${cert.name} badge`}
+                      className="h-14 w-14 rounded-md object-cover group-hover:shadow-glow-soft transition-shadow duration-300"
+                    />
                   )}
                 </div>
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
                   <span>{formatDate(cert.date)}</span>
                   {cert.url && (
-                    <a href={cert.url} target="_blank" rel="noreferrer" className="text-saber-blue hover:underline">
+                    <a href={cert.url} target="_blank" rel="noreferrer" className="text-saber-blue hover:underline inline-flex items-center gap-1">
                       Verify
+                      <Award className="h-3 w-3" />
                     </a>
                   )}
                 </div>

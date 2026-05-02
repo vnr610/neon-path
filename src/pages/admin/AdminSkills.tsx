@@ -1,231 +1,285 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { AdminFormShell, type FormStatus } from "@/components/saber/AdminFormShell";
-import { FormField, FormSection, SaberInput } from "@/components/saber/FormField";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Edit3, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Edit3, RefreshCw, Trash2 } from "lucide-react";
 import { LevelBadge } from "@/components/saber/LevelBadge";
 import { SaberProgress } from "@/components/saber/SaberProgress";
 import {
-  addSkill,
-  deleteSkill,
-  loadSkills,
-  updateSkill,
-  type Skill,
+  addSkill, deleteSkill, loadBlogPosts, loadCertifications,
+  loadProjects, loadSiteHome, loadSkills, updateSkill, type Skill,
 } from "@/lib/content";
+import { loadExternalAchievements } from "@/lib/externalAchievements";
+import { deriveSkills, type DerivedSkill } from "@/lib/skillsEngine";
 
-const triggerCls =
-  "w-full h-10 rounded-md bg-background/40 border border-border/60 px-3.5 text-sm font-mono hover:border-foreground/30 focus:border-foreground/70 focus:ring-0 focus:ring-offset-0 transition-all";
-
-const blankSkillForm = {
-  name: "",
-  category: "",
-  level: "",
-  progress: "0",
-};
+type ScanStatus = "idle" | "scanning" | "done" | "error";
 
 const AdminSkills = () => {
   const [skills, setSkills] = useState<Skill[]>([]);
+  const [scanStatus, setScanStatus] = useState<ScanStatus>("idle");
+  const [scanLog, setScanLog] = useState<string[]>([]);
+  const [lastDerived, setLastDerived] = useState<DerivedSkill[]>([]);
+  const [expandedEvidence, setExpandedEvidence] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState(blankSkillForm);
-  const [status, setStatus] = useState<FormStatus>("idle");
-  const [statusMessage, setStatusMessage] = useState<string | undefined>(undefined);
-  const [errors, setErrors] = useState<string[]>([]);
+  const [editForm, setEditForm] = useState({ level: "", progress: "" });
 
-  useEffect(() => {
-    const fetchSkills = async () => {
-      const data = await loadSkills();
-      setSkills(data);
-    };
-    fetchSkills();
+  const appendLog = useCallback((msg: string) => {
+    setScanLog((prev) => [...prev, msg]);
   }, []);
 
-  const resetForm = () => {
-    setEditingId(null);
-    setFormData(blankSkillForm);
-    setStatus("idle");
-    setStatusMessage(undefined);
-    setErrors([]);
-  };
+  // ── Auto-scan + sync ──────────────────────────────────────────────────────
+  const runScan = useCallback(async () => {
+    setScanStatus("scanning");
+    setScanLog([]);
+    setExpandedEvidence(null);
 
-  const handleEdit = (skill: Skill) => {
-    setEditingId(skill.id);
-    setFormData({
-      name: skill.name,
-      category: skill.category,
-      level: skill.level,
-      progress: String(skill.progress),
-    });
-    setStatus("ready");
-    setStatusMessage("Editing existing skill.");
-    setErrors([]);
-  };
+    try {
+      appendLog("Loading handles…");
+      const home = await loadSiteHome();
+
+      if (!home.githubUsername && !home.leetcodeUsername && !home.hacktheboxUsername && !home.hackeroneUsername) {
+        appendLog("⚠ No handles set — go to Admin → Home page.");
+      }
+
+      appendLog("Fetching external profiles…");
+      const achievements = await loadExternalAchievements({
+        githubUsername: home.githubUsername,
+        leetcodeUsername: home.leetcodeUsername,
+        hacktheboxUsername: home.hacktheboxUsername,
+        hackeroneUsername: home.hackeroneUsername,
+      });
+      appendLog(`  GitHub pushes 30d : ${achievements.githubPushes30d ?? "—"}`);
+      appendLog(`  LeetCode solved   : ${achievements.leetcodeSolved ?? "—"}`);
+      appendLog(`  HTB rank          : ${achievements.hacktheboxRank ?? "—"}`);
+      appendLog(`  HackerOne rep     : ${achievements.hackeroneReputation ?? "—"}`);
+
+      appendLog("Loading site content…");
+      const [projects, posts, certifications] = await Promise.all([
+        loadProjects(), loadBlogPosts(), loadCertifications(),
+      ]);
+      appendLog(`  ${projects.length} projects · ${posts.length} writeups · ${certifications.length} certs`);
+
+      appendLog("Scoring…");
+      const derived = await deriveSkills({
+        handles: {
+          githubUsername: home.githubUsername,
+          leetcodeUsername: home.leetcodeUsername,
+          hacktheboxUsername: home.hacktheboxUsername,
+          hackeroneUsername: home.hackeroneUsername,
+        },
+        achievements, projects, posts, certifications,
+      });
+
+      appendLog(`Syncing ${derived.length} skills to DB…`);
+
+      // Diff + upsert
+      const existing = await loadSkills();
+      const existingByName = new Map(existing.map((s) => [s.name.toLowerCase(), s]));
+      const derivedNames = new Set(derived.map((s) => s.name.toLowerCase()));
+
+      let deleted = 0, updated = 0, inserted = 0;
+      for (const skill of existing) {
+        if (!derivedNames.has(skill.name.toLowerCase())) {
+          await deleteSkill(skill.id);
+          deleted++;
+        }
+      }
+      for (const s of derived) {
+        const match = existingByName.get(s.name.toLowerCase());
+        if (match) {
+          await updateSkill(match.id, { category: s.category, level: s.level, progress: s.progress });
+          updated++;
+        } else {
+          await addSkill({ name: s.name, category: s.category, level: s.level, progress: s.progress });
+          inserted++;
+        }
+      }
+
+      appendLog(`Done — ${inserted} added, ${updated} updated, ${deleted} removed.`);
+      const maxScore = derived.reduce((m, s) => Math.max(m, s.progress), 0);
+      appendLog(`Top score: ${maxScore}% (hard cap 92%).`);
+
+      const refreshed = await loadSkills();
+      setSkills(refreshed);
+      setLastDerived(derived);
+      setScanStatus("done");
+    } catch (err) {
+      appendLog(`Error: ${String(err)}`);
+      setScanStatus("error");
+    }
+  }, [appendLog]);
+
+  // Auto-scan on mount
+  useEffect(() => { void runScan(); }, [runScan]);
 
   const handleDelete = async (id: string) => {
     await deleteSkill(id);
-    const data = await loadSkills();
-    setSkills(data);
-    if (editingId === id) resetForm();
+    setSkills(await loadSkills());
+    if (editingId === id) setEditingId(null);
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setStatus("submitting");
-    setStatusMessage(undefined);
-    setErrors([]);
-
-    const name = formData.name.trim();
-    const category = formData.category.trim();
-    const level = formData.level.trim();
-    const progress = Number(formData.progress);
-    const nextErrors: string[] = [];
-
-    if (!name) nextErrors.push("Skill name is required.");
-    if (!category) nextErrors.push("Category is required.");
-    if (!level) nextErrors.push("Realm level is required.");
-    if (Number.isNaN(progress) || progress < 0 || progress > 100) {
-      nextErrors.push("Progress must be a whole number between 0 and 100.");
-    }
-
-    if (nextErrors.length > 0) {
-      setErrors(nextErrors);
-      setStatus("error");
-      return;
-    }
-
-    if (editingId) {
-      await updateSkill(editingId, { name, category: category as "fullstack" | "cyber", level, progress });
-      setStatus("success");
-      setStatusMessage("Skill updated successfully.");
-    } else {
-      await addSkill({ name, category: category as "fullstack" | "cyber", level, progress });
-      setStatus("success");
-      setStatusMessage("Skill added to the codex.");
-    }
-
-    const data = await loadSkills();
-    setSkills(data);
-    resetForm();
+  const handleEditSave = async (id: string) => {
+    const progress = Number(editForm.progress);
+    if (isNaN(progress) || progress < 0 || progress > 100) return;
+    await updateSkill(id, { level: editForm.level, progress });
+    setSkills(await loadSkills());
+    setEditingId(null);
   };
+
+  const fullStack = skills.filter((s) => s.category === "fullstack");
+  const cyber = skills.filter((s) => s.category === "cyber");
 
   return (
     <AdminLayout title="Skills">
-      <div className="grid gap-8 lg:grid-cols-[minmax(420px,1fr)_340px]">
-        <AdminFormShell
-          eyebrow={editingId ? "edit skill" : "new skill"}
-          title={editingId ? "Update Skill" : "Add Skill"}
-          description="Catalog a new discipline within a realm — track mastery from Initiate to Grandmaster."
-          submitLabel={editingId ? "Save Changes" : "Add to Codex"}
-          onSubmit={handleSubmit}
-          status={status}
-          statusMessage={statusMessage}
-          errors={errors}
-        >
-          <FormSection title="Definition">
-            <FormField id="name" label="Skill Name" required hint="The canonical name as you'd say it aloud.">
-              <SaberInput
-                name="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g. TypeScript"
-                maxLength={60}
-              />
-            </FormField>
-          </FormSection>
-
-          <FormSection title="Classification">
-            <div className="grid sm:grid-cols-2 gap-5">
-              <FormField id="category" label="Category" required>
-                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                  <SelectTrigger id="category" className={triggerCls}>
-                    <SelectValue placeholder="Select realm" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="fullstack">Full Stack</SelectItem>
-                    <SelectItem value="cyber">Cybersecurity</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormField>
-              <FormField id="level" label="Realm Level" required>
-                <Select value={formData.level} onValueChange={(value) => setFormData({ ...formData, level: value })}>
-                  <SelectTrigger id="level" className={triggerCls}>
-                    <SelectValue placeholder="Select rank" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="initiate">Initiate</SelectItem>
-                    <SelectItem value="apprentice">Apprentice</SelectItem>
-                    <SelectItem value="knight">Knight</SelectItem>
-                    <SelectItem value="master">Master</SelectItem>
-                    <SelectItem value="grandmaster">Grandmaster</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormField>
-            </div>
-          </FormSection>
-
-          <FormSection title="Progression">
-            <FormField id="progress" label="Progress" hint="A whole number from 0 to 100 representing mastery.">
-              <SaberInput
-                name="progress"
-                type="number"
-                min={0}
-                max={100}
-                step={1}
-                value={formData.progress}
-                onChange={(e) => setFormData({ ...formData, progress: e.target.value })}
-                placeholder="0"
-              />
-            </FormField>
-          </FormSection>
-        </AdminFormShell>
-
-        <section className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-eyebrow-bright text-[10px] uppercase tracking-[0.32em]">Saved skills</p>
-              <p className="text-sm text-muted-foreground">Edit or delete existing entries in the codex.</p>
-            </div>
-            {editingId && (
-              <Button variant="ghost" size="sm" onClick={resetForm}>
-                Cancel edit
-              </Button>
-            )}
+      {/* ── Scan status panel ── */}
+      <div className="saber-card p-5 mb-8">
+        <div className="flex items-center justify-between gap-4 mb-3">
+          <div className="flex items-center gap-2">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                scanStatus === "scanning" ? "bg-foreground/60 animate-pulse" :
+                scanStatus === "done" ? "bg-foreground/80" :
+                scanStatus === "error" ? "bg-destructive" : "bg-muted-foreground/40"
+              }`}
+            />
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+              {scanStatus === "scanning" ? "Scanning & syncing…" :
+               scanStatus === "done" ? `Auto-synced · ${fullStack.length + cyber.length} skills` :
+               scanStatus === "error" ? "Scan failed" : "Idle"}
+            </p>
           </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="saber-border font-mono text-[10px] uppercase tracking-[0.2em]"
+            onClick={runScan}
+            disabled={scanStatus === "scanning"}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${scanStatus === "scanning" ? "animate-spin" : ""}`} />
+            Re-scan
+          </Button>
+        </div>
 
-          {skills.length === 0 ? (
-            <div className="saber-card p-6 text-muted-foreground">No saved skills yet.</div>
-          ) : (
-            <div className="space-y-3">
-              {skills.map((skill) => (
-                <article key={skill.id} className="saber-card p-5">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <LevelBadge
-                        label={skill.category === "fullstack" ? "Full Stack" : "Cybersecurity"}
-                        variant={skill.category === "fullstack" ? "blue" : "purple"}
-                      />
-                      <h3 className="mt-3 text-lg font-semibold">{skill.name}</h3>
-                      <p className="mt-2 text-xs uppercase tracking-[0.24em] text-muted-foreground">{skill.level}</p>
-                      <div className="mt-4 max-w-xs">
-                        <SaberProgress label="Progress" value={skill.progress} variant={skill.category === "fullstack" ? "blue" : "purple"} />
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="button" variant="outline" size="sm" onClick={() => handleEdit(skill)}>
-                        <Edit3 className="h-4 w-4" /> Edit
-                      </Button>
-                      <Button type="button" variant="destructive" size="sm" onClick={() => handleDelete(skill.id)}>
-                        <Trash2 className="h-4 w-4" /> Delete
-                      </Button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+        {/* Log */}
+        <div className="rounded-md bg-background/60 border border-border/40 p-3 font-mono text-[10px] space-y-0.5 max-h-40 overflow-y-auto">
+          {scanLog.length === 0 ? (
+            <p className="text-muted-foreground/40">Waiting…</p>
+          ) : scanLog.map((line, i) => (
+            <p key={i} className="text-muted-foreground leading-relaxed">
+              <span className="text-foreground/20 mr-2">›</span>{line}
+            </p>
+          ))}
+        </div>
       </div>
+
+      {/* ── Saved skills ── */}
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-eyebrow-bright text-[10px] uppercase tracking-[0.32em]">Skills</p>
+          <p className="text-sm text-muted-foreground">
+            {skills.length === 0
+              ? "Scanning…"
+              : `${fullStack.length} full stack · ${cyber.length} cyber · max ${Math.max(...skills.map((s) => s.progress), 0)}%`}
+          </p>
+        </div>
+      </div>
+
+      {skills.length > 0 && (
+        <div className="grid lg:grid-cols-2 gap-6">
+          {([
+            { label: "Full Stack", items: fullStack, variant: "blue" as const },
+            { label: "Cybersecurity", items: cyber, variant: "purple" as const },
+          ]).map(({ label, items, variant }) => (
+            <section key={label}>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-3">{label}</p>
+              <div className="space-y-2">
+                {items.map((skill) => {
+                  const evidence = lastDerived.find((d) => d.name.toLowerCase() === skill.name.toLowerCase())?.evidence ?? [];
+                  const isExpanded = expandedEvidence === skill.id;
+                  return (
+                    <article key={skill.id} className="saber-card overflow-hidden">
+                      {editingId === skill.id ? (
+                        <div className="p-4 space-y-3">
+                          <p className="text-sm font-semibold">{skill.name}</p>
+                          <div className="grid grid-cols-2 gap-3">
+                            <select
+                              value={editForm.level}
+                              onChange={(e) => setEditForm((f) => ({ ...f, level: e.target.value }))}
+                              className="rounded-md bg-background/40 border border-border/60 px-3 py-2 text-sm font-mono"
+                            >
+                              {["initiate", "apprentice", "knight", "master", "grandmaster"].map((l) => (
+                                <option key={l} value={l}>{l}</option>
+                              ))}
+                            </select>
+                            <input
+                              type="number" min={0} max={92}
+                              value={editForm.progress}
+                              onChange={(e) => setEditForm((f) => ({ ...f, progress: e.target.value }))}
+                              className="rounded-md bg-background/40 border border-border/60 px-3 py-2 text-sm font-mono"
+                              placeholder="0–92"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleEditSave(skill.id)}>Save</Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="p-4 flex items-start gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2 mb-2">
+                                <p className="text-sm font-semibold truncate">{skill.name}</p>
+                                <span className="font-mono text-[10px] text-muted-foreground shrink-0 tabular-nums">
+                                  {skill.progress}% · {skill.level}
+                                </span>
+                              </div>
+                              <SaberProgress label="Progress" value={skill.progress} variant={variant} />
+                            </div>
+                            <div className="flex gap-1 shrink-0 mt-0.5">
+                              {evidence.length > 0 && (
+                                <Button
+                                  type="button" variant="ghost" size="sm"
+                                  onClick={() => setExpandedEvidence(isExpanded ? null : skill.id)}
+                                >
+                                  {isExpanded
+                                    ? <ChevronUp className="h-3.5 w-3.5" />
+                                    : <ChevronDown className="h-3.5 w-3.5" />}
+                                </Button>
+                              )}
+                              <Button
+                                type="button" variant="ghost" size="sm"
+                                onClick={() => { setEditingId(skill.id); setEditForm({ level: skill.level, progress: String(skill.progress) }); }}
+                              >
+                                <Edit3 className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                type="button" variant="ghost" size="sm"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => handleDelete(skill.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                          {isExpanded && evidence.length > 0 && (
+                            <div className="px-4 pb-3 border-t border-border/40 pt-2 space-y-0.5">
+                              {evidence.map((e, i) => (
+                                <p key={i} className="font-mono text-[10px] text-muted-foreground">
+                                  <span className="text-foreground/20 mr-1.5">·</span>{e}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
     </AdminLayout>
   );
 };

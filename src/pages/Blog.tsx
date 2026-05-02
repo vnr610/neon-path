@@ -32,8 +32,12 @@ const Blog = () => {
           />
         ) : (
           <div className="grid gap-8 lg:grid-cols-2">
-            {posts.map((post) => (
-              <article key={post.id} className="saber-card overflow-hidden group flex flex-col">
+            {posts.map((post, i) => (
+              <article
+                key={post.id}
+                className="saber-card overflow-hidden group flex flex-col animate-fade-up opacity-0 hover:-translate-y-1 transition-transform duration-300"
+                style={{ animationDelay: `${0.1 + i * 0.09}s` }}
+              >
                 {post.thumbnailUrl ? (
                   <Link to={`/writeups/${post.slug}`} className="block">
                     <img src={post.thumbnailUrl} alt="" className="aspect-[21/9] w-full object-cover border-b border-border/50" />
