@@ -14,6 +14,7 @@ export default {
       fontFamily: {
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
         display: ['Orbitron', '"JetBrains Mono"', 'monospace'],
+        sans: ['"Space Grotesk"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
