@@ -1,6 +1,6 @@
 /**
- * LogoSaber — compact animated saber for the navbar logo.
- * Uses anime.js for ignition + idle hum. Pure SVG, no canvas.
+ * LogoSaber — compact diagonal lightsaber for the navbar logo.
+ * Matches the warrior's saber angle (~215°). anime.js ignition + hum.
  */
 import { useEffect, useRef } from "react";
 import anime from "animejs";
@@ -11,57 +11,45 @@ interface LogoSaberProps {
 }
 
 export function LogoSaber({ size = 28, className = "" }: LogoSaberProps) {
-  const bladeRef = useRef<SVGRectElement>(null);
-  const coreRef = useRef<SVGRectElement>(null);
-  const glowRef = useRef<SVGRectElement>(null);
+  const bladeRef = useRef<SVGLineElement>(null);
+  const glowRef = useRef<SVGLineElement>(null);
+  const coreRef = useRef<SVGLineElement>(null);
   const groupRef = useRef<SVGGElement>(null);
   const ignited = useRef(false);
 
-  const cx = size / 2;
-  const hiltH = size * 0.38;
-  const hiltW = size * 0.22;
-  const hiltY = size - hiltH;
-  const bladeW = size * 0.1;
-  const bladeFullH = hiltY - 2;
-  const bladeTipY = 2;
+  // Saber at ~45° angle (top-right to bottom-left) to match warrior pose
+  const x1 = size * 0.78;
+  const y1 = size * 0.18;
+  const x2 = size * 0.18;
+  const y2 = size * 0.82;
 
   const ignite = () => {
     if (ignited.current) return;
     ignited.current = true;
 
-    const blade = bladeRef.current;
-    const core = coreRef.current;
-    const glow = glowRef.current;
-    if (!blade || !core || !glow) return;
-
-    anime.set([blade, core, glow], { height: 0, y: hiltY });
-
-    anime({
-      targets: [blade, glow],
-      height: bladeFullH,
-      y: bladeTipY,
-      duration: 500,
-      easing: "easeOutQuart",
+    anime.set([bladeRef.current, glowRef.current, coreRef.current], {
+      x2: x1, y2: y1,
     });
+
     anime({
-      targets: core,
-      height: bladeFullH - 4,
-      y: bladeTipY + 2,
-      duration: 500,
+      targets: [bladeRef.current, glowRef.current, coreRef.current],
+      x2, y2,
+      duration: 480,
       easing: "easeOutQuart",
       complete: () => {
-        // Idle hum
+        // Hum
         anime({
           targets: groupRef.current,
-          translateY: [-1, 1],
-          duration: 2000,
+          translateX: [-0.4, 0.4],
+          translateY: [-0.3, 0.3],
+          duration: 100,
           easing: "easeInOutSine",
           loop: true,
           direction: "alternate",
         });
         anime({
-          targets: core,
-          opacity: [1, 0.7, 1],
+          targets: coreRef.current,
+          opacity: [1, 0.6, 1],
           duration: 1600,
           easing: "easeInOutQuad",
           loop: true,
@@ -71,106 +59,102 @@ export function LogoSaber({ size = 28, className = "" }: LogoSaberProps) {
   };
 
   useEffect(() => {
-    const t = setTimeout(ignite, 400);
+    const t = setTimeout(ignite, 500);
     return () => clearTimeout(t);
   }, []);
+
+  const hiltLen = size * 0.28;
+  const hiltAngle = Math.atan2(y2 - y1, x2 - x1);
+  const hx2 = x1 + Math.cos(hiltAngle) * hiltLen;
+  const hy2 = y1 + Math.sin(hiltAngle) * hiltLen;
 
   return (
     <svg
       width={size}
       height={size}
       viewBox={`0 0 ${size} ${size}`}
-      className={`select-none ${className}`}
+      className={`select-none overflow-visible ${className}`}
       aria-hidden="true"
     >
       <defs>
-        <filter id="logo-glow" x="-200%" y="-20%" width="500%" height="140%">
-          <feGaussianBlur stdDeviation="1.5" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
+        <filter id="ls-glow" x="-300%" y="-300%" width="700%" height="700%">
+          <feGaussianBlur stdDeviation="1.2" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
-        <linearGradient id="logo-hilt" x1="0" x2="1" y1="0" y2="0">
-          <stop offset="0%" stopColor="hsl(0 0% 8%)" />
-          <stop offset="40%" stopColor="hsl(0 0% 40%)" />
-          <stop offset="60%" stopColor="hsl(0 0% 28%)" />
-          <stop offset="100%" stopColor="hsl(0 0% 6%)" />
+        <linearGradient id="ls-blade" x1={x1} y1={y1} x2={x2} y2={y2} gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="hsl(0 0% 75%)" />
+          <stop offset="70%" stopColor="hsl(0 0% 30%)" />
+          <stop offset="100%" stopColor="hsl(0 0% 10%)" stopOpacity="0.2" />
+        </linearGradient>
+        <linearGradient id="ls-glow-grad" x1={x1} y1={y1} x2={x2} y2={y2} gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="hsl(0 0% 100%)" stopOpacity="0.5" />
+          <stop offset="100%" stopColor="hsl(0 0% 80%)" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="ls-hilt" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%" stopColor="hsl(0 0% 6%)" />
+          <stop offset="40%" stopColor="hsl(0 0% 38%)" />
+          <stop offset="60%" stopColor="hsl(0 0% 24%)" />
+          <stop offset="100%" stopColor="hsl(0 0% 5%)" />
         </linearGradient>
       </defs>
 
       <g ref={groupRef}>
         {/* Glow */}
-        <rect
+        <line
           ref={glowRef}
-          x={cx - bladeW}
-          y={hiltY}
-          width={bladeW * 2}
-          height={0}
-          rx={bladeW}
-          fill="hsl(0 0% 100%)"
-          opacity={0.12}
-          filter="url(#logo-glow)"
+          x1={x1} y1={y1} x2={x1} y2={y1}
+          stroke="url(#ls-glow-grad)"
+          strokeWidth={size * 0.18}
+          strokeLinecap="round"
+          filter="url(#ls-glow)"
+          opacity={0.4}
         />
         {/* Blade */}
-        <rect
+        <line
           ref={bladeRef}
-          x={cx - bladeW / 2}
-          y={hiltY}
-          width={bladeW}
-          height={0}
-          rx={bladeW / 2}
-          fill="hsl(0 0% 15%)"
+          x1={x1} y1={y1} x2={x1} y2={y1}
+          stroke="url(#ls-blade)"
+          strokeWidth={size * 0.07}
+          strokeLinecap="round"
         />
         {/* Core */}
-        <rect
+        <line
           ref={coreRef}
-          x={cx - 1}
-          y={hiltY}
-          width={2}
-          height={0}
-          rx={1}
-          fill="hsl(0 0% 90%)"
+          x1={x1} y1={y1} x2={x1} y2={y1}
+          stroke="hsl(0 0% 95%)"
+          strokeWidth={size * 0.025}
+          strokeLinecap="round"
           opacity={0.9}
         />
         {/* Hilt */}
-        <rect
-          x={cx - hiltW / 2}
-          y={hiltY}
-          width={hiltW}
-          height={hiltH}
-          rx={2}
-          fill="url(#logo-hilt)"
+        <line
+          x1={x1} y1={y1}
+          x2={hx2} y2={hy2}
+          stroke="url(#ls-hilt)"
+          strokeWidth={size * 0.14}
+          strokeLinecap="round"
         />
         {/* Guard */}
-        <rect
-          x={cx - hiltW / 2 - 3}
-          y={hiltY + 2}
-          width={hiltW + 6}
-          height={3}
-          rx={1}
-          fill="hsl(0 0% 30%)"
-        />
-        {/* Grip lines */}
-        {[0, 1, 2].map((i) => (
-          <rect
-            key={i}
-            x={cx - hiltW / 2}
-            y={hiltY + 8 + i * 5}
-            width={hiltW}
-            height={2}
-            rx={0.5}
-            fill="hsl(0 0% 8%)"
-            opacity={0.7}
-          />
-        ))}
+        {(() => {
+          const perp = hiltAngle + Math.PI / 2;
+          const gx = x1 + Math.cos(hiltAngle) * size * 0.06;
+          const gy = y1 + Math.sin(hiltAngle) * size * 0.06;
+          const gl = size * 0.18;
+          return (
+            <line
+              x1={gx + Math.cos(perp) * gl} y1={gy + Math.sin(perp) * gl}
+              x2={gx - Math.cos(perp) * gl} y2={gy - Math.sin(perp) * gl}
+              stroke="hsl(0 0% 28%)"
+              strokeWidth={size * 0.06}
+              strokeLinecap="round"
+            />
+          );
+        })()}
         {/* Pommel */}
-        <ellipse
-          cx={cx}
-          cy={size - 2}
-          rx={hiltW / 2 + 1}
-          ry={3}
-          fill="hsl(0 0% 20%)"
+        <circle
+          cx={hx2} cy={hy2}
+          r={size * 0.07}
+          fill="hsl(0 0% 22%)"
         />
       </g>
     </svg>
