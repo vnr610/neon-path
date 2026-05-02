@@ -12,6 +12,8 @@ const Projects = () => {
           icon={FolderGit2}
           title="No projects in the vault"
           description="When projects are added they will appear here as illuminated cards with details, tech stack, and live links."
+          hint="The next build is always the most important."
+          status="vault :: sealed"
         />
       </div>
     </SiteLayout>

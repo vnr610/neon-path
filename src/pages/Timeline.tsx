@@ -18,6 +18,8 @@ const Timeline = () => {
               icon={GitCommitVertical}
               title="No timeline entries yet"
               description="Each new milestone will be plotted along the saber spine with date, realm, and description."
+              hint="The path forms only as you walk it."
+              status="timeline :: t = 0"
             />
           </div>
         </div>

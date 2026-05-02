@@ -12,7 +12,8 @@ const Blog = () => {
           icon={BookOpen}
           title="No posts published"
           description="Future writings on full stack engineering and cybersecurity will appear here in chronological order."
-          glow="purple"
+          hint="Writing is thinking in slow motion."
+          status="journal :: blank page"
         />
       </div>
     </SiteLayout>

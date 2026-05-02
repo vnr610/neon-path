@@ -64,6 +64,8 @@ const Index = () => {
           icon={Target}
           title="No active focus declared"
           description="Once you set a current focus area it will appear here as a glowing beacon."
+          hint="Discipline begins with a single intent."
+          status="focus :: undeclared"
         />
       </section>
 
@@ -74,7 +76,8 @@ const Index = () => {
           icon={Activity}
           title="No recent progress logged"
           description="New milestones and learning entries will appear here as they're recorded."
-          glow="purple"
+          hint="Small commits, compounded daily."
+          status="log :: empty"
         />
       </section>
 

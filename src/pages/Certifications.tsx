@@ -12,7 +12,8 @@ const Certifications = () => {
           icon={Award}
           title="No certifications recorded"
           description="Certificates will be displayed here as glowing seals with issuer, date, and verification link."
-          glow="purple"
+          hint="Proof follows practice."
+          status="vault :: 0 credentials"
         />
       </div>
     </SiteLayout>
