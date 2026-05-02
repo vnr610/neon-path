@@ -1,27 +1,43 @@
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AdminFormShell } from "@/components/saber/AdminFormShell";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-
-const Field = ({ id, label, children }: { id: string; label: string; children: React.ReactNode }) => (
-  <div className="space-y-2">
-    <Label htmlFor={id} className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">{label}</Label>
-    {children}
-  </div>
-);
+import { FormField, FormSection, SaberInput, SaberTextarea } from "@/components/saber/FormField";
 
 const AdminProjects = () => (
   <AdminLayout title="Projects">
-    <AdminFormShell eyebrow="// new project" title="Forge Project" description="Add a project to the vault.">
-      <Field id="name" label="Project Name"><Input id="name" placeholder="Project name" className="bg-background/60 saber-border" /></Field>
-      <Field id="desc" label="Description"><Textarea id="desc" rows={3} placeholder="What does it do?" className="bg-background/60 saber-border" /></Field>
-      <div className="grid sm:grid-cols-2 gap-5">
-        <Field id="repo" label="Repository URL"><Input id="repo" placeholder="https://github.com/..." className="bg-background/60 saber-border" /></Field>
-        <Field id="live" label="Live URL"><Input id="live" placeholder="https://..." className="bg-background/60 saber-border" /></Field>
-      </div>
-      <Field id="stack" label="Tech Stack"><Input id="stack" placeholder="React, Node, Postgres" className="bg-background/60 saber-border" /></Field>
-      <Field id="cover" label="Cover Image URL"><Input id="cover" placeholder="https://..." className="bg-background/60 saber-border" /></Field>
+    <AdminFormShell
+      eyebrow="new project"
+      title="Forge Project"
+      description="Add a project to the vault — link the repository, the live build, and the tech behind it."
+      submitLabel="Forge Entry"
+    >
+      <FormSection title="Overview">
+        <FormField id="name" label="Project Name" required>
+          <SaberInput id="name" placeholder="Codename or product title" maxLength={80} />
+        </FormField>
+        <FormField id="desc" label="Description" required hint="One paragraph. Lead with the problem it solves.">
+          <SaberTextarea id="desc" rows={4} placeholder="What does it do? Who is it for?" maxLength={500} />
+        </FormField>
+      </FormSection>
+
+      <FormSection title="Links">
+        <div className="grid sm:grid-cols-2 gap-5">
+          <FormField id="repo" label="Repository URL" optional>
+            <SaberInput id="repo" type="url" placeholder="https://github.com/…" inputMode="url" />
+          </FormField>
+          <FormField id="live" label="Live URL" optional>
+            <SaberInput id="live" type="url" placeholder="https://…" inputMode="url" />
+          </FormField>
+        </div>
+      </FormSection>
+
+      <FormSection title="Presentation">
+        <FormField id="stack" label="Tech Stack" required hint="Comma-separated. Order by prominence in the build.">
+          <SaberInput id="stack" placeholder="React, Node, Postgres" />
+        </FormField>
+        <FormField id="cover" label="Cover Image URL" optional hint="16:9 recommended for clean grid display.">
+          <SaberInput id="cover" type="url" placeholder="https://…" inputMode="url" />
+        </FormField>
+      </FormSection>
     </AdminFormShell>
   </AdminLayout>
 );
