@@ -22,9 +22,7 @@ const Index = () => {
             </div>
 
             <h1 className="text-display-xl mb-6 animate-fade-up opacity-0" style={{ animationDelay: "0.2s" }}>
-              M Thapa
-              <br />
-              <span className="saber-text">Magar</span>
+              <span className="saber-text">VNR610</span>
               <span className="text-foreground">.</span>
             </h1>
 

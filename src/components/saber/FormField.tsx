@@ -8,6 +8,9 @@ import {
   TextareaHTMLAttributes,
   ButtonHTMLAttributes,
   useState,
+  useRef,
+  useEffect,
+  KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
@@ -234,19 +237,80 @@ export const SaberDatePicker = forwardRef<HTMLButtonElement, SaberDatePickerProp
     const selected = value ?? internal;
     const fallbackId = useId();
     const fieldId = id ?? fallbackId;
+    const [open, setOpen] = useState(false);
+    const popoverContentRef = useRef<HTMLDivElement>(null);
 
     const handleChange = (d: Date | undefined) => {
       setInternal(d);
       onChange?.(d);
+      if (d) setOpen(false);
+    };
+
+    // Keyboard handler on the trigger button:
+    // - Enter / Space / ArrowDown / ArrowUp -> open
+    // - Escape -> close (handled inside Popover too, but kept for safety)
+    const handleTriggerKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+      if (open) return;
+      if (
+        e.key === "Enter" ||
+        e.key === " " ||
+        e.key === "ArrowDown" ||
+        e.key === "ArrowUp"
+      ) {
+        e.preventDefault();
+        setOpen(true);
+      }
+    };
+
+    // When the calendar opens, move focus into it so arrow keys navigate days.
+    // react-day-picker handles arrow / PageUp/Down / Home/End once focused.
+    useEffect(() => {
+      if (!open) return;
+      const id = window.setTimeout(() => {
+        const root = popoverContentRef.current;
+        if (!root) return;
+        const target =
+          root.querySelector<HTMLElement>('[role="gridcell"] [aria-selected="true"]') ||
+          root.querySelector<HTMLElement>('[role="gridcell"] button:not([disabled])') ||
+          root.querySelector<HTMLElement>("button:not([disabled])");
+        target?.focus();
+      }, 0);
+      return () => window.clearTimeout(id);
+    }, [open]);
+
+    // Trap focus within the popover while open.
+    const handleContentKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (e.key !== "Tab") return;
+      const root = popoverContentRef.current;
+      if (!root) return;
+      const focusables = Array.from(
+        root.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null);
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
 
     return (
-      <Popover>
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
             ref={ref}
             id={fieldId}
             type="button"
+            aria-haspopup="dialog"
+            aria-expanded={open}
+            onKeyDown={handleTriggerKeyDown}
             className={cn(
               baseFieldClasses,
               "h-10 flex items-center justify-between text-left",
@@ -263,6 +327,11 @@ export const SaberDatePicker = forwardRef<HTMLButtonElement, SaberDatePickerProp
           </button>
         </PopoverTrigger>
         <PopoverContent
+          ref={popoverContentRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Choose date"
+          onKeyDown={handleContentKeyDown}
           className="w-auto p-0 saber-border bg-popover/95 backdrop-blur-xl"
           align="start"
         >

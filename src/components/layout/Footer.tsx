@@ -5,7 +5,7 @@ export function Footer() {
     <footer className="border-t border-border/60 mt-24">
       <div className="container py-10 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="text-center md:text-left">
-          <p className="font-display text-sm tracking-wider">M THAPA MAGAR <span className="text-saber-blue">/</span> VNR610</p>
+          <p className="font-display text-sm tracking-wider">VNR610</p>
           <p className="text-xs text-muted-foreground mt-1 tracking-wider">Mastering Full Stack & Cybersecurity</p>
         </div>
         <div className="flex items-center gap-2">

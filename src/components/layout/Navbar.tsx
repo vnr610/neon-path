@@ -25,7 +25,7 @@ export function Navbar() {
           </div>
           <div className="flex flex-col leading-none">
             <span className="font-display text-sm font-bold tracking-wider">VNR610</span>
-            <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground">M Thapa Magar</span>
+            <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground">Realm Codex</span>
           </div>
         </Link>
 
