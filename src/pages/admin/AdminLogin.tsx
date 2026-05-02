@@ -126,10 +126,7 @@ const AdminLogin = () => {
                 />
               </FormField>
 
-              <FormStatusArea
-                status={status === "success" ? "idle" : status}
-                message={statusMessage}
-              />
+              <FormStatusArea status={status} message={statusMessage} />
 
               <Button
                 type="submit"
