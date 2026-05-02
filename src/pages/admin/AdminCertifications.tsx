@@ -1,25 +1,37 @@
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AdminFormShell } from "@/components/saber/AdminFormShell";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-
-const Field = ({ id, label, children }: { id: string; label: string; children: React.ReactNode }) => (
-  <div className="space-y-2">
-    <Label htmlFor={id} className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">{label}</Label>
-    {children}
-  </div>
-);
+import { FormField, FormSection, SaberInput } from "@/components/saber/FormField";
 
 const AdminCertifications = () => (
   <AdminLayout title="Certifications">
-    <AdminFormShell eyebrow="// new credential" title="Add Certification" description="Record an earned credential.">
-      <Field id="name" label="Certification Name"><Input id="name" placeholder="e.g. OSCP" className="bg-background/60 saber-border" /></Field>
-      <div className="grid sm:grid-cols-2 gap-5">
-        <Field id="issuer" label="Issuer"><Input id="issuer" placeholder="Issuing organization" className="bg-background/60 saber-border" /></Field>
-        <Field id="date" label="Date Issued"><Input id="date" type="date" className="bg-background/60 saber-border" /></Field>
-      </div>
-      <Field id="url" label="Verification URL"><Input id="url" placeholder="https://..." className="bg-background/60 saber-border" /></Field>
-      <Field id="badge" label="Badge Image URL"><Input id="badge" placeholder="https://..." className="bg-background/60 saber-border" /></Field>
+    <AdminFormShell
+      eyebrow="new credential"
+      title="Add Certification"
+      description="Record an earned credential — verification links and badge art keep it credible."
+      submitLabel="Seal Credential"
+    >
+      <FormSection title="Credential">
+        <FormField id="name" label="Certification Name" required>
+          <SaberInput id="name" placeholder="e.g. OSCP" maxLength={100} />
+        </FormField>
+        <div className="grid sm:grid-cols-2 gap-5">
+          <FormField id="issuer" label="Issuer" required>
+            <SaberInput id="issuer" placeholder="Issuing organization" maxLength={80} />
+          </FormField>
+          <FormField id="date" label="Date Issued" required>
+            <SaberInput id="date" type="date" />
+          </FormField>
+        </div>
+      </FormSection>
+
+      <FormSection title="Proof">
+        <FormField id="url" label="Verification URL" optional hint="Public link reviewers can click to verify.">
+          <SaberInput id="url" type="url" placeholder="https://…" inputMode="url" />
+        </FormField>
+        <FormField id="badge" label="Badge Image URL" optional hint="PNG or SVG — square aspect renders best.">
+          <SaberInput id="badge" type="url" placeholder="https://…" inputMode="url" />
+        </FormField>
+      </FormSection>
     </AdminFormShell>
   </AdminLayout>
 );
