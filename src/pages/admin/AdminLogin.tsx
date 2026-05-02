@@ -1,10 +1,70 @@
-import { Link } from "react-router-dom";
-import { Lock, Mail, Swords } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, Navigate, useLocation } from "react-router-dom";
+import { Loader2, Mail, Swords, CheckCircle2 } from "lucide-react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { FormField, SaberInput } from "@/components/saber/FormField";
+import { FormStatusArea, type FormStatus } from "@/components/saber/AdminFormShell";
+
+const emailSchema = z
+  .string()
+  .trim()
+  .min(1, "Email is required")
+  .email("Enter a valid email")
+  .max(255, "Email too long");
 
 const AdminLogin = () => {
+  const { user, isAdmin, loading } = useAuth();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from ?? "/admin";
+
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | undefined>();
+  const [status, setStatus] = useState<FormStatus>("idle");
+  const [statusMessage, setStatusMessage] = useState<string | undefined>();
+
+  // If already signed in as admin, redirect.
+  if (!loading && user && isAdmin) {
+    return <Navigate to={from} replace />;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(undefined);
+
+    const parsed = emailSchema.safeParse(email);
+    if (!parsed.success) {
+      setError(parsed.error.errors[0].message);
+      setStatus("error");
+      setStatusMessage(undefined);
+      return;
+    }
+
+    setStatus("submitting");
+    setStatusMessage("dispatching link to your inbox");
+
+    const { error: authError } = await supabase.auth.signInWithOtp({
+      email: parsed.data,
+      options: {
+        emailRedirectTo: `${window.location.origin}/admin/callback`,
+        // Sign-ups are disabled at the auth level; users not already in the
+        // database simply won't receive a working link.
+        shouldCreateUser: false,
+      },
+    });
+
+    if (authError) {
+      setStatus("error");
+      setStatusMessage(authError.message);
+      return;
+    }
+
+    setStatus("success");
+    setStatusMessage(`magic link sent to ${parsed.data}`);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
       <div className="absolute inset-0 grid-bg pointer-events-none" />
@@ -18,34 +78,83 @@ const AdminLogin = () => {
 
         <div className="saber-card p-8 sm:p-10 shadow-glow-soft">
           <div className="mb-8 text-center">
-            <p className="text-[10px] uppercase tracking-[0.4em] text-saber-blue mb-3">Admin Console</p>
-            <h1 className="font-display text-2xl font-bold mb-2">Authenticate</h1>
-            <p className="text-xs text-muted-foreground tracking-wider">Identify yourself, traveler.</p>
+            <p className="text-eyebrow-bright mb-3">admin console</p>
+            <h1 className="text-display-md mb-2">Authenticate</h1>
+            <p className="text-body-sm">A passwordless link will be sent to your inbox.</p>
           </div>
 
-          <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input id="email" type="email" placeholder="you@realm.dev" className="pl-10 bg-background/60 saber-border" />
+          {status === "success" ? (
+            <div className="text-center space-y-4 py-2">
+              <CheckCircle2 className="h-8 w-8 mx-auto text-foreground/80" />
+              <div>
+                <p className="text-eyebrow-bright mb-2">link dispatched</p>
+                <p className="text-body-sm">
+                  Check <span className="text-foreground font-mono">{email}</span> and click
+                  the link to ignite your session.
+                </p>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setStatus("idle");
+                  setStatusMessage(undefined);
+                }}
+                className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Use a different email
+              </button>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input id="password" type="password" placeholder="••••••••" className="pl-10 bg-background/60 saber-border" />
-              </div>
-            </div>
+          ) : (
+            <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+              <FormField
+                id="email"
+                label="Email"
+                required
+                error={error}
+                hint="The email associated with your admin account."
+              >
+                <SaberInput
+                  id="email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  autoFocus
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@realm.dev"
+                  maxLength={255}
+                />
+              </FormField>
 
-            <Button type="submit" asChild className="w-full bg-gradient-saber hover:opacity-90 text-primary-foreground border-0 shadow-glow-blue">
-              <Link to="/admin">Ignite Session</Link>
-            </Button>
-          </form>
+              <FormStatusArea
+                status={status === "success" ? "idle" : status}
+                message={statusMessage}
+              />
 
-          <p className="text-center text-[10px] uppercase tracking-[0.3em] text-muted-foreground mt-8">
-            <Link to="/" className="hover:text-saber-blue transition-colors">← Back to realm</Link>
+              <Button
+                type="submit"
+                disabled={status === "submitting"}
+                className="w-full bg-gradient-saber hover:opacity-90 text-primary-foreground border-0 shadow-glow-blue font-mono text-[11px] uppercase tracking-[0.25em]"
+              >
+                {status === "submitting" ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                    Transmitting
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-3.5 w-3.5 mr-2" />
+                    Send Magic Link
+                  </>
+                )}
+              </Button>
+            </form>
+          )}
+
+          <p className="text-center text-eyebrow mt-8">
+            <Link to="/" className="hover:text-foreground transition-colors">
+              ← Back to realm
+            </Link>
           </p>
         </div>
       </div>
