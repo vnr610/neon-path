@@ -9,6 +9,7 @@ type ExternalHandles = {
 
 type ExternalAchievements = {
   githubPushes30d: number | null;
+  githubPublicEvents30d: number | null;
   leetcodeSolved: number | null;
   hacktheboxRank: string | null;
   hackeroneReputation: number | null;
@@ -42,15 +43,15 @@ function handleFromInput(value: string | null | undefined, host: string): string
   }
 }
 
-async function fetchGitHubPushes30d(username: string): Promise<number | null> {
+async function fetchGitHubActivity30d(username: string): Promise<{ pushes: number; publicEvents: number } | null> {
   try {
     const res = await fetch(`https://api.github.com/users/${username}/events/public?per_page=100`);
     if (!res.ok) return null;
-    const events = (await res.json()) as Array<{ type: string; created_at: string; payload?: { commits?: unknown[] } }>;
+    const events = (await res.json()) as Array<{ type: string; created_at: string }>;
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    return events
-      .filter((e) => e.type === "PushEvent" && new Date(e.created_at).getTime() >= cutoff)
-      .reduce((sum, e) => sum + (e.payload?.commits?.length ?? 1), 0);
+    const inWindow = events.filter((e) => new Date(e.created_at).getTime() >= cutoff);
+    const pushes = inWindow.filter((e) => e.type === "PushEvent").length;
+    return { pushes, publicEvents: inWindow.length };
   } catch {
     return null;
   }
@@ -113,20 +114,52 @@ async function fetchHackTheBoxRank(userId: string): Promise<string | null> {
 async function fetchHackerOneReputation(username: string): Promise<number | null> {
   const apiUser = Deno.env.get("HACKERONE_API_USERNAME");
   const apiToken = Deno.env.get("HACKERONE_API_TOKEN");
-  if (!apiUser || !apiToken) return null;
+  if (!apiUser || !apiToken) {
+    console.warn("HackerOne secret missing");
+    return null;
+  }
   try {
     const basic = btoa(`${apiUser}:${apiToken}`);
-    const res = await fetch(`https://api.hackerone.com/v1/users/${encodeURIComponent(username)}`, {
+    const reporterQuery = encodeURIComponent(`reporter:${username}`);
+    const hacktivityRes = await fetch(
+      `https://api.hackerone.com/v1/hackers/hacktivity?queryString=${reporterQuery}&page[size]=1`,
+      {
+        headers: {
+          Authorization: `Basic ${basic}`,
+          Accept: "application/json",
+        },
+      },
+    );
+    if (hacktivityRes.ok) {
+      const hacktivity = (await hacktivityRes.json()) as {
+        included?: Array<{ type?: string; attributes?: { username?: string; reputation?: number | null } }>;
+      };
+      const userObj = hacktivity.included?.find(
+        (x) => x.type === "user" && x.attributes?.username?.toLowerCase() === username.toLowerCase(),
+      );
+      const rep = userObj?.attributes?.reputation;
+      if (typeof rep === "number") return rep;
+    } else {
+      console.warn("HackerOne hacktivity fetch failed", hacktivityRes.status);
+    }
+
+    const userRes = await fetch(`https://api.hackerone.com/v1/users/${encodeURIComponent(username)}`, {
       headers: {
         Authorization: `Basic ${basic}`,
         Accept: "application/json",
       },
     });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { data?: { attributes?: { reputation?: number | null } } };
+    if (!userRes.ok) {
+      console.warn("HackerOne user fetch failed", userRes.status);
+      return null;
+    }
+    const data = (await userRes.json()) as { data?: { attributes?: { reputation?: number | null } } };
     const rep = data?.data?.attributes?.reputation;
-    return typeof rep === "number" ? rep : null;
-  } catch {
+    if (typeof rep === "number") return rep;
+    // If auth + user lookup work but reputation is not exposed, treat as zero instead of unavailable.
+    return 0;
+  } catch (error) {
+    console.error("HackerOne fetch error", String(error));
     return null;
   }
 }
@@ -145,15 +178,16 @@ serve(async (req) => {
     const htb = handleFromInput(handles.hacktheboxUsername, "hackthebox.com");
     const h1 = handleFromInput(handles.hackeroneUsername, "hackerone.com");
 
-    const [githubPushes30d, leetcodeSolved, hacktheboxRank, hackeroneReputation] = await Promise.all([
-      github ? fetchGitHubPushes30d(github) : Promise.resolve(null),
+    const [githubActivity, leetcodeSolved, hacktheboxRank, hackeroneReputation] = await Promise.all([
+      github ? fetchGitHubActivity30d(github) : Promise.resolve(null),
       leetcode ? fetchLeetCodeSolved(leetcode) : Promise.resolve(null),
       htb ? fetchHackTheBoxRank(htb) : Promise.resolve(null),
       h1 ? fetchHackerOneReputation(h1) : Promise.resolve(null),
     ]);
 
     const achievements: ExternalAchievements = {
-      githubPushes30d,
+      githubPushes30d: githubActivity?.pushes ?? null,
+      githubPublicEvents30d: githubActivity?.publicEvents ?? null,
       leetcodeSolved,
       hacktheboxRank,
       hackeroneReputation,

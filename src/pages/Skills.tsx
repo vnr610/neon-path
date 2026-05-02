@@ -73,10 +73,19 @@ const Skills = () => {
             <Trophy className="h-4 w-4 text-saber-purple" />
             <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Synced achievements</p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <div className="rounded-md border border-border/60 p-4">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">GitHub pushes (30d)</p>
-              <p className="font-display text-2xl mt-2">{achievements?.githubPushes30d ?? "—"}</p>
+              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">GitHub push events (30d)</p>
+              <p className="font-display text-2xl mt-2">{achievements?.githubPushes30d ?? (githubHandle ? 0 : "—")}</p>
+              {githubHandle ? (
+                <a className="text-xs text-saber-blue hover:underline" href={`https://github.com/${githubHandle}`} target="_blank" rel="noreferrer">
+                  @{githubHandle}
+                </a>
+              ) : null}
+            </div>
+            <div className="rounded-md border border-border/60 p-4">
+              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">GitHub public events (30d)</p>
+              <p className="font-display text-2xl mt-2">{achievements?.githubPublicEvents30d ?? (githubHandle ? 0 : "—")}</p>
               {githubHandle ? (
                 <a className="text-xs text-saber-blue hover:underline" href={`https://github.com/${githubHandle}`} target="_blank" rel="noreferrer">
                   @{githubHandle}
@@ -117,7 +126,7 @@ const Skills = () => {
             </div>
           </div>
           <p className="text-[11px] text-muted-foreground mt-3">
-            Live stats come from public endpoints; if you see dashes, the service may be down, blocked, or the handle may not match what that API expects.
+            Live stats come from public endpoints; GitHub push events count PushEvent items, while public events count all visible event types (push, create, watch, etc.), not repositories.
           </p>
         </div>
 

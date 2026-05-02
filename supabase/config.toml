@@ -1,1 +1,4 @@
 project_id = "mkuaoxegdoqizxwbrtlm"
+
+[functions.external-achievements]
+verify_jwt = false

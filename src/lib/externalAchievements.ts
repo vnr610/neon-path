@@ -9,6 +9,7 @@ export type ExternalHandles = {
 
 export type ExternalAchievements = {
   githubPushes30d: number | null;
+  githubPublicEvents30d: number | null;
   leetcodeSolved: number | null;
   hacktheboxRank: string | null;
   hackeroneReputation: number | null;
@@ -41,11 +42,21 @@ async function fetchGitHubPushes30d(username: string): Promise<number | null> {
   try {
     const res = await fetch(`https://api.github.com/users/${username}/events/public?per_page=100`);
     if (!res.ok) return null;
-    const events = (await res.json()) as Array<{ type: string; created_at: string; payload?: { commits?: unknown[] } }>;
+    const events = (await res.json()) as Array<{ type: string; created_at: string }>;
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    return events
-      .filter((e) => e.type === "PushEvent" && new Date(e.created_at).getTime() >= cutoff)
-      .reduce((sum, e) => sum + (e.payload?.commits?.length ?? 1), 0);
+    return events.filter((e) => e.type === "PushEvent" && new Date(e.created_at).getTime() >= cutoff).length;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchGitHubPublicEvents30d(username: string): Promise<number | null> {
+  try {
+    const res = await fetch(`https://api.github.com/users/${username}/events/public?per_page=100`);
+    if (!res.ok) return null;
+    const events = (await res.json()) as Array<{ created_at: string }>;
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    return events.filter((e) => new Date(e.created_at).getTime() >= cutoff).length;
   } catch {
     return null;
   }
@@ -139,13 +150,14 @@ export async function loadExternalAchievements(handles: ExternalHandles): Promis
   const hacktheboxUsername = extractHandle(handles.hacktheboxUsername, "hackthebox.com");
   const hackeroneUsername = extractHandle(handles.hackeroneUsername, "hackerone.com");
 
-  const [githubPushes30d, leetcodeSolved, hacktheboxRank, hackeroneReputation] = await Promise.all([
+  const [githubPushes30d, githubPublicEvents30d, leetcodeSolved, hacktheboxRank, hackeroneReputation] = await Promise.all([
     githubUsername ? fetchGitHubPushes30d(githubUsername) : Promise.resolve(null),
+    githubUsername ? fetchGitHubPublicEvents30d(githubUsername) : Promise.resolve(null),
     leetcodeUsername ? fetchLeetCodeSolved(leetcodeUsername) : Promise.resolve(null),
     hacktheboxUsername ? fetchHackTheBoxRank(hacktheboxUsername) : Promise.resolve(null),
     hackeroneUsername ? fetchHackerOneReputation(hackeroneUsername) : Promise.resolve(null),
   ]);
 
-  return { githubPushes30d, leetcodeSolved, hacktheboxRank, hackeroneReputation };
+  return { githubPushes30d, githubPublicEvents30d, leetcodeSolved, hacktheboxRank, hackeroneReputation };
 }
 
