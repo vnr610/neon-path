@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
-import { Loader2, Mail, Swords, CheckCircle2 } from "lucide-react";
+import { Loader2, Lock, Swords, Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,12 +8,18 @@ import { useAuth } from "@/hooks/useAuth";
 import { FormField, SaberInput } from "@/components/saber/FormField";
 import { FormStatusArea, type FormStatus } from "@/components/saber/AdminFormShell";
 
-const emailSchema = z
-  .string()
-  .trim()
-  .min(1, "Email is required")
-  .email("Enter a valid email")
-  .max(255, "Email too long");
+const loginSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email is required")
+    .email("Enter a valid email")
+    .max(255, "Email too long"),
+  password: z
+    .string()
+    .min(1, "Password is required")
+    .min(6, "Password must be at least 6 characters"),
+});
 
 const AdminLogin = () => {
   const { user, isAdmin, loading } = useAuth();
@@ -21,7 +27,9 @@ const AdminLogin = () => {
   const from = (location.state as { from?: string } | null)?.from ?? "/admin";
 
   const [email, setEmail] = useState("");
-  const [error, setError] = useState<string | undefined>();
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [status, setStatus] = useState<FormStatus>("idle");
   const [statusMessage, setStatusMessage] = useState<string | undefined>();
 
@@ -32,28 +40,27 @@ const AdminLogin = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(undefined);
+    setErrors({});
+    setStatusMessage(undefined);
 
-    const parsed = emailSchema.safeParse(email);
+    const parsed = loginSchema.safeParse({ email, password });
     if (!parsed.success) {
-      setError(parsed.error.errors[0].message);
+      const fieldErrors: { email?: string; password?: string } = {};
+      for (const issue of parsed.error.errors) {
+        const field = issue.path[0] as "email" | "password";
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
       setStatus("error");
-      setStatusMessage(undefined);
       return;
     }
 
     setStatus("submitting");
-    setStatusMessage("dispatching link to your inbox");
+    setStatusMessage("verifying credentials…");
 
-    const { error: authError } = await supabase.auth.signInWithOtp({
-      email: parsed.data,
-      options: {
-        emailRedirectTo: `${window.location.origin}/admin/callback`,
-        // The very first sign-in needs to create the user so the
-        // bootstrap_first_admin() trigger can grant admin. Subsequent
-        // sign-ins simply re-authenticate the same account.
-        shouldCreateUser: true,
-      },
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: parsed.data.email,
+      password: parsed.data.password,
     });
 
     if (authError) {
@@ -62,8 +69,9 @@ const AdminLogin = () => {
       return;
     }
 
-    setStatus("success");
-    setStatusMessage(`magic link sent to ${parsed.data}`);
+    // On success, AuthProvider's onAuthStateChange will update the session
+    // and the Navigate above will redirect to /admin automatically.
+    setStatus("idle");
   };
 
   return (
@@ -81,73 +89,84 @@ const AdminLogin = () => {
           <div className="mb-8 text-center">
             <p className="text-eyebrow-bright mb-3">admin console</p>
             <h1 className="text-display-md mb-2">Authenticate</h1>
-            <p className="text-body-sm">A passwordless link will be sent to your inbox.</p>
+            <p className="text-body-sm">Enter your email and password to access the dashboard.</p>
           </div>
 
-          {status === "success" ? (
-            <div className="text-center space-y-4 py-2">
-              <CheckCircle2 className="h-8 w-8 mx-auto text-foreground/80" />
-              <div>
-                <p className="text-eyebrow-bright mb-2">link dispatched</p>
-                <p className="text-body-sm">
-                  Check <span className="text-foreground font-mono">{email}</span> and click
-                  the link to ignite your session.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setStatus("idle");
-                  setStatusMessage(undefined);
-                }}
-                className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Use a different email
-              </button>
-            </div>
-          ) : (
-            <form className="space-y-5" onSubmit={handleSubmit} noValidate>
-              <FormField
+          <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+            {/* Email */}
+            <FormField
+              id="email"
+              label="Email"
+              required
+              error={errors.email}
+              hint="The email associated with your admin account."
+            >
+              <SaberInput
                 id="email"
-                label="Email"
-                required
-                error={error}
-                hint="The email associated with your admin account."
-              >
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoFocus
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@realm.dev"
+                maxLength={255}
+              />
+            </FormField>
+
+            {/* Password */}
+            <FormField
+              id="password"
+              label="Password"
+              required
+              error={errors.password}
+            >
+              <div className="relative">
                 <SaberInput
-                  id="email"
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  autoFocus
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@realm.dev"
-                  maxLength={255}
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  maxLength={128}
+                  className="pr-10"
                 />
-              </FormField>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </FormField>
 
-              <FormStatusArea status={status} message={statusMessage} />
+            <FormStatusArea status={status} message={statusMessage} />
 
-              <Button
-                type="submit"
-                disabled={status === "submitting"}
-                className="w-full bg-gradient-saber hover:opacity-90 text-primary-foreground border-0 shadow-glow-blue font-mono text-[11px] uppercase tracking-[0.25em]"
-              >
-                {status === "submitting" ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-                    Transmitting
-                  </>
-                ) : (
-                  <>
-                    <Mail className="h-3.5 w-3.5 mr-2" />
-                    Send Magic Link
-                  </>
-                )}
-              </Button>
-            </form>
-          )}
+            <Button
+              type="submit"
+              disabled={status === "submitting"}
+              className="w-full bg-gradient-saber hover:opacity-90 text-primary-foreground border-0 shadow-glow-blue font-mono text-[11px] uppercase tracking-[0.25em]"
+            >
+              {status === "submitting" ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                  Verifying
+                </>
+              ) : (
+                <>
+                  <Lock className="h-3.5 w-3.5 mr-2" />
+                  Sign In
+                </>
+              )}
+            </Button>
+          </form>
 
           <p className="text-center text-eyebrow mt-8">
             <Link to="/" className="hover:text-foreground transition-colors">
