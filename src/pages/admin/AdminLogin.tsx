@@ -49,9 +49,10 @@ const AdminLogin = () => {
       email: parsed.data,
       options: {
         emailRedirectTo: `${window.location.origin}/admin/callback`,
-        // Sign-ups are disabled at the auth level; users not already in the
-        // database simply won't receive a working link.
-        shouldCreateUser: false,
+        // The very first sign-in needs to create the user so the
+        // bootstrap_first_admin() trigger can grant admin. Subsequent
+        // sign-ins simply re-authenticate the same account.
+        shouldCreateUser: true,
       },
     });
 
