@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Orbitron:wght@500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Orbitron:wght@500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
@@ -94,9 +94,52 @@
   h1, h2, h3, h4 {
     @apply font-display tracking-tight;
   }
+
+  p, li, span, a, button, label, input, textarea, select {
+    font-feature-settings: "ss01", "cv11", "calt";
+  }
 }
 
 @layer components {
+  /* Typography system */
+  .text-display {
+    @apply font-display font-bold tracking-tight;
+    letter-spacing: -0.015em;
+  }
+  .text-display-xl {
+    @apply text-display text-5xl sm:text-7xl md:text-8xl leading-[0.92];
+  }
+  .text-display-lg {
+    @apply text-display text-4xl sm:text-5xl md:text-6xl leading-[0.95];
+  }
+  .text-display-md {
+    @apply text-display text-2xl sm:text-3xl leading-tight;
+  }
+
+  .text-body {
+    @apply font-sans text-base text-foreground/85 leading-relaxed;
+  }
+  .text-body-sm {
+    @apply font-sans text-sm text-muted-foreground leading-relaxed;
+  }
+  .text-lead {
+    @apply font-sans text-lg sm:text-xl text-foreground/80 leading-relaxed;
+    letter-spacing: -0.005em;
+  }
+
+  .text-mono {
+    @apply font-mono text-xs text-muted-foreground tracking-wider;
+  }
+  .text-eyebrow {
+    @apply font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground;
+  }
+  .text-eyebrow-bright {
+    @apply font-mono text-[10px] uppercase tracking-[0.32em] text-foreground/90;
+  }
+  .text-kbd {
+    @apply font-mono text-xs px-1.5 py-0.5 rounded border border-border/60 bg-muted/40 text-foreground/80;
+  }
+
   .saber-text {
     background: var(--gradient-saber);
     -webkit-background-clip: text;
