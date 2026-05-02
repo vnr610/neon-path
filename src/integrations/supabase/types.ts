@@ -7,8 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -32,6 +30,168 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      blog_posts: {
+        Row: {
+          id: string
+          title: string
+          slug: string
+          excerpt: string | null
+          content: string
+          tags: string[]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          slug: string
+          excerpt?: string | null
+          content: string
+          tags?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          slug?: string
+          excerpt?: string | null
+          content?: string
+          tags?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      skills: {
+        Row: {
+          id: string
+          name: string
+          category: "fullstack" | "cyber"
+          level: string
+          progress: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          category: "fullstack" | "cyber"
+          level: string
+          progress?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          category?: "fullstack" | "cyber"
+          level?: string
+          progress?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          id: string
+          name: string
+          desc: string
+          repo: string | null
+          live: string | null
+          stack: string
+          cover: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          desc: string
+          repo?: string | null
+          live?: string | null
+          stack: string
+          cover?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          desc?: string
+          repo?: string | null
+          live?: string | null
+          stack?: string
+          cover?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      timeline_entries: {
+        Row: {
+          id: string
+          date: string
+          realm: string
+          title: string
+          desc: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          date: string
+          realm: string
+          title: string
+          desc?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          date?: string
+          realm?: string
+          title?: string
+          desc?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      certifications: {
+        Row: {
+          id: string
+          name: string
+          issuer: string
+          date: string
+          url: string | null
+          badge: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          issuer: string
+          date: string
+          url?: string | null
+          badge?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          issuer?: string
+          date?: string
+          url?: string | null
+          badge?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
