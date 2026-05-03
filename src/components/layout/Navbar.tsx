@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { Menu, Search, X, Swords, Terminal, ShieldAlert, LayoutGrid, FolderGit2, GitCommitVertical, Award, BookMarked } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCommandPalette } from "@/components/saber/CommandPalette";
 
 const primaryLinks = [
   { to: "/", label: "Home" },
@@ -132,12 +133,18 @@ function MoreMenu() {
 export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const { setOpen: openPalette } = useCommandPalette();
+
+  const handleSearchClick = () => {
+    if (onSearchOpen) onSearchOpen();
+    else openPalette(true);
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl">
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2.5 group">
+        <Link to="/" className="flex items-center gap-2.5 group shrink-0">
           <div className="relative h-7 w-7 flex items-center justify-center">
             <svg viewBox="0 0 28 28" className="absolute inset-0 h-full w-full logo-ring text-foreground/15" fill="none">
               <circle cx="14" cy="14" r="13" stroke="currentColor" strokeWidth="0.5" strokeDasharray="3 5" />
@@ -153,8 +160,8 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
           </div>
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-1">
+        {/* Desktop nav — centered */}
+        <nav className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
           {primaryLinks.map((l) => (
             <NavLink
               key={l.to}
@@ -183,12 +190,11 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
         {/* Desktop right side */}
         <div className="hidden md:flex items-center gap-2">
           <button
-            onClick={onSearchOpen}
-            className="flex items-center gap-2 h-8 px-3 rounded-md border border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors text-xs font-mono"
-            aria-label="Open search"
+            onClick={handleSearchClick}
+            className="flex items-center justify-center h-9 w-9 rounded-md border border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
+            aria-label="Open search (⌘K)"
           >
-            <Search className="h-3.5 w-3.5" />
-            <span className="hidden lg:inline text-muted-foreground/50">⌘K</span>
+            <Search className="h-4 w-4" />
           </button>
           <AdminButton />
         </div>

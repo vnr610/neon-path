@@ -1,54 +1,49 @@
 /**
  * CommandPalette — ⌘K / Ctrl+K global search and navigation.
- * Searches pages, blog posts, projects, and skills.
+ * Uses a shared context so both the Navbar icon and keyboard shortcut
+ * control the same palette instance.
  */
 
-import { useEffect, useState, useCallback } from "react";
+import {
+  createContext, useCallback, useContext, useEffect,
+  useState, ReactNode,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
+  CommandDialog, CommandEmpty, CommandGroup, CommandInput,
+  CommandItem, CommandList, CommandSeparator,
 } from "@/components/ui/command";
 import {
-  Activity,
-  Award,
-  BookOpen,
-  Code2,
-  FolderGit2,
-  Home,
-  Mail,
-  Shield,
-  Sparkles,
-  User,
-  BookMarked,
+  Activity, Award, BookOpen, Code2, FolderGit2,
+  Home, Mail, Shield, Sparkles, User, BookMarked,
 } from "lucide-react";
 import { loadBlogPosts, loadProjects, loadSkills } from "@/lib/content";
 import type { BlogPost, Project, Skill } from "@/lib/content";
 
-// ─── Static nav pages ─────────────────────────────────────────────────────────
+// ─── Pages ────────────────────────────────────────────────────────────────────
 
 const PAGES = [
-  { label: "Home", to: "/", icon: Home },
-  { label: "About", to: "/about", icon: User },
-  { label: "Skills", to: "/skills", icon: Sparkles },
-  { label: "Projects", to: "/projects", icon: FolderGit2 },
-  { label: "Writeups", to: "/writeups", icon: BookOpen },
-  { label: "Timeline", to: "/timeline", icon: Activity },
-  { label: "Certifications", to: "/certifications", icon: Award },
-  { label: "Guestbook", to: "/guestbook", icon: BookMarked },
-  { label: "Contact", to: "/contact", icon: Mail },
+  { label: "Home",           to: "/",               icon: Home },
+  { label: "About",          to: "/about",           icon: User },
+  { label: "Skills",         to: "/skills",          icon: Sparkles },
+  { label: "Projects",       to: "/projects",        icon: FolderGit2 },
+  { label: "Writeups",       to: "/writeups",        icon: BookOpen },
+  { label: "Timeline",       to: "/timeline",        icon: Activity },
+  { label: "Certifications", to: "/certifications",  icon: Award },
+  { label: "Guestbook",      to: "/guestbook",       icon: BookMarked },
+  { label: "Contact",        to: "/contact",         icon: Mail },
 ];
 
-// ─── Hook: open on ⌘K / Ctrl+K ───────────────────────────────────────────────
+// ─── Shared context ───────────────────────────────────────────────────────────
 
-export function useCommandPalette() {
+interface Ctx { open: boolean; setOpen: (v: boolean) => void; }
+const PaletteCtx = createContext<Ctx | null>(null);
+
+/** Wrap your app with this so Navbar and App share the same open state. */
+export function CommandPaletteProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
 
+  // ⌘K / Ctrl+K
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -60,24 +55,28 @@ export function useCommandPalette() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  return { open, setOpen };
+  return <PaletteCtx.Provider value={{ open, setOpen }}>{children}</PaletteCtx.Provider>;
+}
+
+/** Use anywhere inside CommandPaletteProvider to open/close the palette. */
+export function useCommandPalette(): Ctx {
+  const ctx = useContext(PaletteCtx);
+  if (!ctx) throw new Error("useCommandPalette must be used inside <CommandPaletteProvider>");
+  return ctx;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-type Props = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-};
-
-export function CommandPalette({ open, onOpenChange }: Props) {
+/** Render this once at the app root — it reads state from the shared context. */
+export function CommandPalette() {
+  const { open, setOpen } = useCommandPalette();
   const navigate = useNavigate();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  // Lazy-load content when palette first opens
+  // Lazy-load content on first open
   useEffect(() => {
     if (!open || loaded) return;
     Promise.all([loadBlogPosts(), loadProjects(), loadSkills()]).then(([p, pr, sk]) => {
@@ -88,49 +87,35 @@ export function CommandPalette({ open, onOpenChange }: Props) {
     });
   }, [open, loaded]);
 
-  const go = useCallback(
-    (to: string) => {
-      onOpenChange(false);
-      navigate(to);
-    },
-    [navigate, onOpenChange],
-  );
+  const go = useCallback((to: string) => {
+    setOpen(false);
+    navigate(to);
+  }, [navigate, setOpen]);
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange}>
+    <CommandDialog open={open} onOpenChange={setOpen}>
       <CommandInput placeholder="Search pages, posts, projects, skills…" />
       <CommandList>
         <CommandEmpty>
           <span className="font-mono text-xs text-muted-foreground">No results found.</span>
         </CommandEmpty>
 
-        {/* Pages */}
         <CommandGroup heading="Navigation">
           {PAGES.map((page) => (
-            <CommandItem
-              key={page.to}
-              value={page.label}
-              onSelect={() => go(page.to)}
-              className="gap-3 cursor-pointer"
-            >
+            <CommandItem key={page.to} value={page.label} onSelect={() => go(page.to)} className="gap-3 cursor-pointer">
               <page.icon className="h-4 w-4 text-muted-foreground shrink-0" />
               <span>{page.label}</span>
             </CommandItem>
           ))}
         </CommandGroup>
 
-        {/* Blog posts */}
         {posts.length > 0 && (
           <>
             <CommandSeparator />
             <CommandGroup heading="Writeups">
               {posts.slice(0, 8).map((post) => (
-                <CommandItem
-                  key={post.id}
-                  value={`writeup ${post.title} ${post.tags.join(" ")}`}
-                  onSelect={() => go(`/writeups/${post.slug}`)}
-                  className="gap-3 cursor-pointer"
-                >
+                <CommandItem key={post.id} value={`writeup ${post.title} ${post.tags.join(" ")}`}
+                  onSelect={() => go(`/writeups/${post.slug}`)} className="gap-3 cursor-pointer">
                   <BookOpen className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="flex flex-col min-w-0">
                     <span className="truncate">{post.title}</span>
@@ -146,18 +131,13 @@ export function CommandPalette({ open, onOpenChange }: Props) {
           </>
         )}
 
-        {/* Projects */}
         {projects.length > 0 && (
           <>
             <CommandSeparator />
             <CommandGroup heading="Projects">
               {projects.slice(0, 6).map((project) => (
-                <CommandItem
-                  key={project.id}
-                  value={`project ${project.name} ${project.stack}`}
-                  onSelect={() => go("/projects")}
-                  className="gap-3 cursor-pointer"
-                >
+                <CommandItem key={project.id} value={`project ${project.name} ${project.stack}`}
+                  onSelect={() => go("/projects")} className="gap-3 cursor-pointer">
                   <FolderGit2 className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="flex flex-col min-w-0">
                     <span className="truncate">{project.name}</span>
@@ -171,23 +151,16 @@ export function CommandPalette({ open, onOpenChange }: Props) {
           </>
         )}
 
-        {/* Skills */}
         {skills.length > 0 && (
           <>
             <CommandSeparator />
             <CommandGroup heading="Skills">
               {skills.slice(0, 6).map((skill) => (
-                <CommandItem
-                  key={skill.id}
-                  value={`skill ${skill.name} ${skill.category}`}
-                  onSelect={() => go("/skills")}
-                  className="gap-3 cursor-pointer"
-                >
-                  {skill.category === "cyber" ? (
-                    <Shield className="h-4 w-4 text-muted-foreground shrink-0" />
-                  ) : (
-                    <Code2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                  )}
+                <CommandItem key={skill.id} value={`skill ${skill.name} ${skill.category}`}
+                  onSelect={() => go("/skills")} className="gap-3 cursor-pointer">
+                  {skill.category === "cyber"
+                    ? <Shield className="h-4 w-4 text-muted-foreground shrink-0" />
+                    : <Code2 className="h-4 w-4 text-muted-foreground shrink-0" />}
                   <div className="flex flex-col min-w-0">
                     <span className="truncate">{skill.name}</span>
                     <span className="text-[10px] text-muted-foreground font-mono">
@@ -201,21 +174,14 @@ export function CommandPalette({ open, onOpenChange }: Props) {
         )}
       </CommandList>
 
-      {/* Footer hint */}
       <div className="border-t border-border/60 px-4 py-2 flex items-center justify-between">
         <span className="font-mono text-[9px] text-muted-foreground/40 uppercase tracking-[0.2em]">
           vnr610 · realm
         </span>
         <div className="flex items-center gap-3">
-          <span className="font-mono text-[9px] text-muted-foreground/40">
-            <kbd className="text-kbd">↑↓</kbd> navigate
-          </span>
-          <span className="font-mono text-[9px] text-muted-foreground/40">
-            <kbd className="text-kbd">↵</kbd> open
-          </span>
-          <span className="font-mono text-[9px] text-muted-foreground/40">
-            <kbd className="text-kbd">esc</kbd> close
-          </span>
+          <span className="font-mono text-[9px] text-muted-foreground/40"><kbd>↑↓</kbd> navigate</span>
+          <span className="font-mono text-[9px] text-muted-foreground/40"><kbd>↵</kbd> open</span>
+          <span className="font-mono text-[9px] text-muted-foreground/40"><kbd>esc</kbd> close</span>
         </div>
       </div>
     </CommandDialog>

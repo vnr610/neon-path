@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { RequireAdmin } from "@/components/auth/RequireAdmin";
 import { ThemeProvider } from "@/components/saber/ThemeProvider";
-import { CommandPalette, useCommandPalette } from "@/components/saber/CommandPalette";
+import { CommandPalette, CommandPaletteProvider } from "@/components/saber/CommandPalette";
 import { usePageTracking } from "@/hooks/usePageTracking";
 
 import Index from "./pages/Index";
@@ -19,6 +19,8 @@ import Timeline from "./pages/Timeline";
 import Certifications from "./pages/Certifications";
 import Contact from "./pages/Contact";
 import Guestbook from "./pages/Guestbook";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -40,11 +42,10 @@ const queryClient = new QueryClient();
 /** Inner component so hooks can access router context */
 function AppRoutes() {
   usePageTracking();
-  const { open, setOpen } = useCommandPalette();
 
   return (
     <>
-      <CommandPalette open={open} onOpenChange={setOpen} />
+      <CommandPalette />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/about" element={<About />} />
@@ -58,6 +59,8 @@ function AppRoutes() {
         <Route path="/certifications" element={<Certifications />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/guestbook" element={<Guestbook />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
 
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/callback" element={<AdminCallback />} />
@@ -87,9 +90,11 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AuthProvider>
-            <AppRoutes />
-          </AuthProvider>
+          <CommandPaletteProvider>
+            <AuthProvider>
+              <AppRoutes />
+            </AuthProvider>
+          </CommandPaletteProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

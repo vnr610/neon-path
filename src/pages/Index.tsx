@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Target, Activity, FolderGit2, Terminal, Shield, Code2, BookOpen, Clock, WifiOff } from "lucide-react";
+import { ArrowRight, Target, Activity, FolderGit2, Terminal, Shield, Code2, BookOpen, Clock, WifiOff, Eye } from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { EmptyState } from "@/components/saber/EmptyState";
 import { SectionHeader } from "@/components/saber/SectionHeader";
@@ -15,6 +15,7 @@ import {
   loadSkills,
   loadTimelineEntries,
   loadBlogPosts,
+  loadTotalPageViews,
   formatDate,
   blogContentPreview,
   estimateReadTime,
@@ -32,6 +33,7 @@ type HomeState = {
   skills: Skill[];
   posts: BlogPost[];
   offline: boolean;
+  totalViews: number;
 };
 
 const Index = () => {
@@ -43,11 +45,12 @@ const Index = () => {
     const isOffline = !navigator.onLine;
     (async () => {
       try {
-        const [featured, timeline, skills, posts] = await Promise.all([
+        const [featured, timeline, skills, posts, totalViews] = await Promise.all([
           loadFeaturedProjectsForHome(),
           loadTimelineEntries(),
           loadSkills(),
           loadBlogPosts(),
+          loadTotalPageViews(),
         ]);
         if (cancelled) return;
         setHome({
@@ -56,10 +59,11 @@ const Index = () => {
           skills,
           posts: posts.slice(0, 3),
           offline: isOffline,
+          totalViews,
         });
       } catch {
         if (cancelled) return;
-        setHome({ featured: [], milestones: [], skills: [], posts: [], offline: true });
+        setHome({ featured: [], milestones: [], skills: [], posts: [], offline: true, totalViews: 0 });
       }
     })();
     return () => { cancelled = true; };
@@ -127,6 +131,12 @@ const Index = () => {
                 <LevelBadge label="Full Stack" variant="blue" />
                 <LevelBadge label="Cybersecurity" variant="purple" />
                 <LevelBadge label="Apprentice" variant="muted" />
+                {home?.totalViews ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/30 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/60">
+                    <Eye className="h-3 w-3" />
+                    {home.totalViews.toLocaleString()} visits
+                  </span>
+                ) : null}
               </div>
             </div>
 

@@ -69,6 +69,15 @@ export function Footer() {
         <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
           © {new Date().getFullYear()} — May the code be with you
         </p>
+        <div className="flex items-center gap-4">
+          <Link to="/privacy" className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/50 hover:text-muted-foreground transition-colors">
+            Privacy
+          </Link>
+          <span className="text-muted-foreground/20">·</span>
+          <Link to="/terms" className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/50 hover:text-muted-foreground transition-colors">
+            Terms
+          </Link>
+        </div>
       </div>
     </footer>
   );

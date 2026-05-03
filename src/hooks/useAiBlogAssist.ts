@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AiAction = "generate" | "enhance" | "summarize" | "suggest-tags" | "suggest-slug" | "write-bio" | "enhance-bio";
+export type AiAction = "generate" | "enhance" | "summarize" | "suggest-tags" | "suggest-slug" | "write-bio" | "enhance-bio" | "write-newsletter";
 
 interface UseAiBlogAssistReturn {
   loading: boolean;

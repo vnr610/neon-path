@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type Action = "generate" | "enhance" | "summarize" | "suggest-tags" | "suggest-slug" | "write-bio" | "enhance-bio";
+type Action = "generate" | "enhance" | "summarize" | "suggest-tags" | "suggest-slug" | "write-bio" | "enhance-bio" | "write-newsletter";
 
 interface RequestBody {
   action: Action;
@@ -108,6 +108,25 @@ Fix grammar, improve flow, make it more engaging. Return only the improved bio t
 
 Original bio:
 ${body.content || ""}`;
+
+    case "write-newsletter":
+      return `You are writing a newsletter email for a cybersecurity and fullstack developer portfolio site called "VNR610 Realm Codex".
+
+Write a compelling newsletter email body for the following blog post. The email should:
+- Open with a short punchy intro (1-2 sentences) that hooks the reader
+- Summarize what the post is about in 2-3 sentences (no spoilers, build curiosity)
+- Mention 1-2 key things the reader will learn or find interesting
+- End with a clear call-to-action sentence like "Read the full writeup here →"
+- Keep the total length to 3-4 short paragraphs
+- Write in plain text (no Markdown, no HTML) — the email renderer handles formatting
+- Tone: direct, technical, slightly personal — like a developer talking to other developers
+- Do NOT include a subject line, greeting, or sign-off — just the body paragraphs
+
+Blog post title: ${body.title || "Untitled"}
+Blog post excerpt: ${body.content?.slice(0, 500) || "No excerpt provided"}
+Tags: ${body.tags || "none"}
+
+Return only the email body text.`;
 
     default:
       throw new Error(`Unknown action: ${body.action}`);
