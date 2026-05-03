@@ -72,6 +72,10 @@ export type SiteHomeSettings = {
   hacktheboxUsername: string | null;
   hackeroneUsername: string | null;
   resumeUrl: string | null;
+  bio: string | null;
+  linkedinUrl: string | null;
+  twitterUrl: string | null;
+  avatarUrl: string | null;
 };
 
 const mapProjectFromDb = (row: any): Project => ({
@@ -386,31 +390,27 @@ export const loadFeaturedProjectsForHome = async (): Promise<Project[]> => {
 export const loadSiteHome = async (): Promise<SiteHomeSettings> => {
   const { data, error } = await supabase
     .from("site_home")
-    .select("focus_title, focus_description, github_username, leetcode_username, hackthebox_username, hackerone_username")
+    .select("focus_title, focus_description, github_username, leetcode_username, hackthebox_username, hackerone_username, resume_url, bio, linkedin_url, twitter_url, avatar_url")
     .eq("id", 1)
     .maybeSingle();
 
   if (error) {
     console.warn("site_home unavailable — apply latest migration:", error.message);
     return {
-      focusTitle: null,
-      focusDescription: null,
-      githubUsername: null,
-      leetcodeUsername: null,
-      hacktheboxUsername: null,
-      hackeroneUsername: null,
-      resumeUrl: null,
+      focusTitle: null, focusDescription: null,
+      githubUsername: null, leetcodeUsername: null,
+      hacktheboxUsername: null, hackeroneUsername: null,
+      resumeUrl: null, bio: null, linkedinUrl: null,
+      twitterUrl: null, avatarUrl: null,
     };
   }
   if (!data) {
     return {
-      focusTitle: null,
-      focusDescription: null,
-      githubUsername: null,
-      leetcodeUsername: null,
-      hacktheboxUsername: null,
-      hackeroneUsername: null,
-      resumeUrl: null,
+      focusTitle: null, focusDescription: null,
+      githubUsername: null, leetcodeUsername: null,
+      hacktheboxUsername: null, hackeroneUsername: null,
+      resumeUrl: null, bio: null, linkedinUrl: null,
+      twitterUrl: null, avatarUrl: null,
     };
   }
   return {
@@ -420,7 +420,11 @@ export const loadSiteHome = async (): Promise<SiteHomeSettings> => {
     leetcodeUsername: data.leetcode_username,
     hacktheboxUsername: data.hackthebox_username,
     hackeroneUsername: data.hackerone_username,
-    resumeUrl: (data as any).resume_url ?? null,
+    resumeUrl: data.resume_url ?? null,
+    bio: data.bio ?? null,
+    linkedinUrl: data.linkedin_url ?? null,
+    twitterUrl: data.twitter_url ?? null,
+    avatarUrl: data.avatar_url ?? null,
   };
 };
 
@@ -436,6 +440,10 @@ export const saveSiteHomeSettings = async (patch: SiteHomeSettingsPatch): Promis
     hacktheboxUsername: patch.hacktheboxUsername !== undefined ? patch.hacktheboxUsername : existing.hacktheboxUsername,
     hackeroneUsername: patch.hackeroneUsername !== undefined ? patch.hackeroneUsername : existing.hackeroneUsername,
     resumeUrl: patch.resumeUrl !== undefined ? patch.resumeUrl : existing.resumeUrl,
+    bio: patch.bio !== undefined ? patch.bio : existing.bio,
+    linkedinUrl: patch.linkedinUrl !== undefined ? patch.linkedinUrl : existing.linkedinUrl,
+    twitterUrl: patch.twitterUrl !== undefined ? patch.twitterUrl : existing.twitterUrl,
+    avatarUrl: patch.avatarUrl !== undefined ? patch.avatarUrl : existing.avatarUrl,
   };
 
   const { error } = await supabase.from("site_home").upsert(
@@ -448,6 +456,10 @@ export const saveSiteHomeSettings = async (patch: SiteHomeSettingsPatch): Promis
       hackthebox_username: merged.hacktheboxUsername,
       hackerone_username: merged.hackeroneUsername,
       resume_url: merged.resumeUrl,
+      bio: merged.bio,
+      linkedin_url: merged.linkedinUrl,
+      twitter_url: merged.twitterUrl,
+      avatar_url: merged.avatarUrl,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "id" },

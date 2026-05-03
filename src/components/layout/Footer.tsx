@@ -1,61 +1,76 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Github, Linkedin, Mail, Download } from "lucide-react";
-import { loadSiteHome } from "@/lib/content";
+import { Github, Linkedin, Mail, Download, Twitter } from "lucide-react";
+import { loadSiteHome, type SiteHomeSettings } from "@/lib/content";
 
 export function Footer() {
-  const [githubUrl, setGithubUrl] = useState("#");
-  const [resumeUrl, setResumeUrl] = useState<string | null>(null);
+  const [site, setSite] = useState<SiteHomeSettings | null>(null);
 
   useEffect(() => {
-    loadSiteHome().then((s) => {
-      if (s.githubUsername) {
-        const handle = s.githubUsername.replace(/^@/, "").trim();
-        if (handle) setGithubUrl(`https://github.com/${handle}`);
-      }
-      setResumeUrl(s.resumeUrl ?? null);
-    });
+    loadSiteHome().then(setSite);
   }, []);
+
+  const githubUrl = site?.githubUsername
+    ? `https://github.com/${site.githubUsername.replace(/^@/, "").trim()}`
+    : null;
 
   return (
     <footer className="border-t border-border/60 mt-24">
       <div className="container py-10 flex flex-col md:flex-row items-center justify-between gap-6">
+
         <div className="text-center md:text-left">
           <p className="font-display text-sm tracking-wider">VNR610</p>
           <p className="text-xs text-muted-foreground mt-1 tracking-wider">Mastering Full Stack & Cybersecurity</p>
         </div>
 
         <div className="flex items-center gap-2">
-          <a
-            href={githubUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="h-9 w-9 rounded-md saber-border flex items-center justify-center text-muted-foreground hover:text-saber-blue transition-colors"
-            aria-label="GitHub"
-          >
-            <Github className="h-4 w-4" />
-          </a>
-          <a
-            href="#"
-            className="h-9 w-9 rounded-md saber-border flex items-center justify-center text-muted-foreground hover:text-saber-blue transition-colors"
-            aria-label="LinkedIn"
-          >
-            <Linkedin className="h-4 w-4" />
-          </a>
+          {githubUrl && (
+            <a
+              href={githubUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="h-9 w-9 rounded-md saber-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="GitHub"
+            >
+              <Github className="h-4 w-4" />
+            </a>
+          )}
+          {site?.linkedinUrl && (
+            <a
+              href={site.linkedinUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="h-9 w-9 rounded-md saber-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="LinkedIn"
+            >
+              <Linkedin className="h-4 w-4" />
+            </a>
+          )}
+          {site?.twitterUrl && (
+            <a
+              href={site.twitterUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="h-9 w-9 rounded-md saber-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Twitter / X"
+            >
+              <Twitter className="h-4 w-4" />
+            </a>
+          )}
           <Link
             to="/contact"
-            className="h-9 w-9 rounded-md saber-border flex items-center justify-center text-muted-foreground hover:text-saber-blue transition-colors"
+            className="h-9 w-9 rounded-md saber-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Contact"
           >
             <Mail className="h-4 w-4" />
           </Link>
-          {resumeUrl && (
+          {site?.resumeUrl && (
             <a
-              href={resumeUrl}
+              href={site.resumeUrl}
               target="_blank"
               rel="noreferrer"
               download
-              className="flex items-center gap-1.5 h-9 px-3 rounded-md saber-border text-muted-foreground hover:text-saber-blue transition-colors text-[10px] uppercase tracking-[0.2em]"
+              className="flex items-center gap-1.5 h-9 px-3 rounded-md saber-border text-muted-foreground hover:text-foreground transition-colors text-[10px] uppercase tracking-[0.2em]"
               aria-label="Download resume"
             >
               <Download className="h-3.5 w-3.5" />

@@ -1,0 +1,148 @@
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+type Action = "generate" | "enhance" | "summarize";
+
+interface RequestBody {
+  action: Action;
+  title?: string;
+  tags?: string;
+  content?: string;
+}
+
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_MODEL = "llama-3.3-70b-versatile"; // Best free model on Groq
+
+const systemContext = `You are a technical writing assistant for a cybersecurity and fullstack development blog.
+The blog belongs to a developer/security researcher. Posts are written in Markdown.
+Write in a clear, technical, and direct style. Avoid fluff and marketing language.
+Use proper Markdown: headings (##, ###), code fences (\`\`\`), inline code, bullet lists where appropriate.`;
+
+function buildPrompt(body: RequestBody): string {
+  switch (body.action) {
+    case "generate":
+      return `${systemContext}
+
+Write a complete, well-structured blog post in Markdown for the following:
+Title: ${body.title || "Untitled"}
+Tags: ${body.tags || "none"}
+
+Requirements:
+- Start with a brief intro paragraph (no heading needed)
+- Use ## for main sections, ### for subsections
+- Include relevant code examples in fenced code blocks where appropriate
+- End with a short conclusion or takeaway
+- Do NOT include the title as a heading at the top (it's shown separately)
+- Aim for 400-800 words`;
+
+    case "enhance":
+      return `${systemContext}
+
+Enhance and improve the following Markdown blog post. Keep the author's voice and core ideas intact.
+Improvements to make:
+- Fix grammar, clarity, and flow
+- Improve technical accuracy and depth where possible
+- Add or improve code examples if relevant
+- Ensure proper Markdown formatting (headings, code fences, lists)
+- Do NOT change the overall structure drastically
+
+Original content:
+---
+${body.content}
+---
+
+Return only the improved Markdown content, no explanations.`;
+
+    case "summarize":
+      return `${systemContext}
+
+Write a concise excerpt (1-2 sentences, max 200 characters) for the following blog post.
+The excerpt should hook the reader and summarize the core topic. Plain text only, no Markdown.
+
+Title: ${body.title || ""}
+Content:
+---
+${body.content?.slice(0, 2000) || ""}
+---
+
+Return only the excerpt text.`;
+
+    default:
+      throw new Error(`Unknown action: ${body.action}`);
+  }
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  // Require a valid Supabase JWT (must be signed in)
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const apiKey = Deno.env.get("GROQ_API_KEY");
+  if (!apiKey) {
+    return new Response(JSON.stringify({ error: "GROQ_API_KEY not configured" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  try {
+    const body = (await req.json()) as RequestBody;
+
+    if (!body.action) {
+      return new Response(JSON.stringify({ error: "action is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const prompt = buildPrompt(body);
+
+    const groqRes = await fetch(GROQ_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 2048,
+      }),
+    });
+
+    if (!groqRes.ok) {
+      const err = await groqRes.text();
+      return new Response(JSON.stringify({ error: `Groq API error: ${err}` }), {
+        status: 502,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const groqData = await groqRes.json();
+    const text = groqData?.choices?.[0]?.message?.content ?? "";
+
+    return new Response(JSON.stringify({ result: text.trim() }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: String(error) }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});

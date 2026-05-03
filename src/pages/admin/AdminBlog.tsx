@@ -3,7 +3,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AdminFormShell, type FormStatus } from "@/components/saber/AdminFormShell";
 import { FormField, FormSection, SaberInput, SaberTextarea } from "@/components/saber/FormField";
 import { Button } from "@/components/ui/button";
-import { Edit3, ImageUp, Trash2 } from "lucide-react";
+import { Edit3, ImageUp, Trash2, Sparkles, Wand2, FileText, Loader2 } from "lucide-react";
 import {
   addBlogPost,
   deleteBlogPost,
@@ -14,6 +14,7 @@ import {
   blogContentPreview,
   type BlogPost,
 } from "@/lib/content";
+import { useAiBlogAssist } from "@/hooks/useAiBlogAssist";
 
 const blankBlogForm = {
   title: "",
@@ -32,6 +33,7 @@ const AdminBlog = () => {
   const [status, setStatus] = useState<FormStatus>("idle");
   const [statusMessage, setStatusMessage] = useState<string | undefined>(undefined);
   const [errors, setErrors] = useState<string[]>([]);
+  const ai = useAiBlogAssist();
 
   useEffect(() => {
     loadBlogPosts().then(setPosts);
@@ -88,6 +90,77 @@ const AdminBlog = () => {
     setFormData((prev) => ({ ...prev, thumbnailUrl: url }));
     setStatus("ready");
     setStatusMessage("Thumbnail uploaded and linked.");
+  };
+
+  const handleAiGenerate = async () => {
+    if (!formData.title.trim()) {
+      setErrors(["Add a title before generating content."]);
+      setStatus("error");
+      return;
+    }
+    setStatus("submitting");
+    setStatusMessage("AI is writing your post…");
+    setErrors([]);
+    const result = await ai.run({
+      action: "generate",
+      title: formData.title,
+      tags: formData.tags,
+    });
+    if (result) {
+      setFormData((prev) => ({ ...prev, content: result }));
+      setStatus("ready");
+      setStatusMessage("Content generated — review and edit before publishing.");
+    } else {
+      setStatus("error");
+      setErrors([ai.error || "AI generation failed."]);
+    }
+  };
+
+  const handleAiEnhance = async () => {
+    if (!formData.content.trim()) {
+      setErrors(["Add some content before enhancing."]);
+      setStatus("error");
+      return;
+    }
+    setStatus("submitting");
+    setStatusMessage("AI is enhancing your content…");
+    setErrors([]);
+    const result = await ai.run({
+      action: "enhance",
+      content: formData.content,
+    });
+    if (result) {
+      setFormData((prev) => ({ ...prev, content: result }));
+      setStatus("ready");
+      setStatusMessage("Content enhanced — review changes before publishing.");
+    } else {
+      setStatus("error");
+      setErrors([ai.error || "AI enhancement failed."]);
+    }
+  };
+
+  const handleAiSummarize = async () => {
+    if (!formData.content.trim()) {
+      setErrors(["Add some content before generating an excerpt."]);
+      setStatus("error");
+      return;
+    }
+    setStatus("submitting");
+    setStatusMessage("AI is generating excerpt…");
+    setErrors([]);
+    const result = await ai.run({
+      action: "summarize",
+      title: formData.title,
+      content: formData.content,
+    });
+    if (result) {
+      setFormData((prev) => ({ ...prev, excerpt: result }));
+      setStatus("ready");
+      setStatusMessage("Excerpt generated — review before publishing.");
+    } else {
+      setStatus("error");
+      setErrors([ai.error || "AI summarization failed."]);
+    }
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -268,6 +341,45 @@ const AdminBlog = () => {
               required
               hint="Headings, lists, links, code fences, and inline code all render on the public site."
             >
+              {/* AI Toolbar */}
+              <div className="flex flex-wrap gap-2 mb-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="saber-border text-saber-blue border-saber-blue/40 hover:bg-saber-blue/10 gap-1.5"
+                  onClick={handleAiGenerate}
+                  disabled={ai.loading}
+                  title="Generate full post from title and tags"
+                >
+                  {ai.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                  Generate
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="saber-border text-saber-blue border-saber-blue/40 hover:bg-saber-blue/10 gap-1.5"
+                  onClick={handleAiEnhance}
+                  disabled={ai.loading}
+                  title="Improve grammar, clarity and formatting"
+                >
+                  {ai.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+                  Enhance
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="saber-border text-saber-blue border-saber-blue/40 hover:bg-saber-blue/10 gap-1.5"
+                  onClick={handleAiSummarize}
+                  disabled={ai.loading}
+                  title="Auto-generate excerpt from content"
+                >
+                  {ai.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                  Summarize
+                </Button>
+              </div>
               <SaberTextarea
                 name="content"
                 value={formData.content}

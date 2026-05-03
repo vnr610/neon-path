@@ -154,6 +154,10 @@ export type Database = {
           hackthebox_username: string | null
           hackerone_username: string | null
           resume_url: string | null
+          bio: string | null
+          linkedin_url: string | null
+          twitter_url: string | null
+          avatar_url: string | null
           updated_at: string
         }
         Insert: {
@@ -165,6 +169,10 @@ export type Database = {
           hackthebox_username?: string | null
           hackerone_username?: string | null
           resume_url?: string | null
+          bio?: string | null
+          linkedin_url?: string | null
+          twitter_url?: string | null
+          avatar_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -176,6 +184,10 @@ export type Database = {
           hackthebox_username?: string | null
           hackerone_username?: string | null
           resume_url?: string | null
+          bio?: string | null
+          linkedin_url?: string | null
+          twitter_url?: string | null
+          avatar_url?: string | null
           updated_at?: string
         }
         Relationships: []
