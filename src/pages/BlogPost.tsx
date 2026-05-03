@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Clock, Eye } from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { BlogPostBody } from "@/components/saber/BlogPostBody";
+import { SEO } from "@/components/saber/SEO";
 import { Button } from "@/components/ui/button";
 import {
   loadBlogPostBySlug,
   loadBlogNeighborsBySlug,
+  incrementBlogPostViews,
+  loadBlogPostViews,
+  estimateReadTime,
   type BlogPost,
   type BlogNeighbor,
   formatDate,
@@ -16,6 +20,7 @@ const BlogArticleView = () => {
   const { slug } = useParams<{ slug: string }>();
   const [post, setPost] = useState<BlogPost | null | undefined>(undefined);
   const [neighbors, setNeighbors] = useState<{ older: BlogNeighbor | null; newer: BlogNeighbor | null } | null>(null);
+  const [views, setViews] = useState<number | null>(null);
 
   useEffect(() => {
     if (!slug) {
@@ -24,12 +29,15 @@ const BlogArticleView = () => {
       return;
     }
     let cancelled = false;
-    Promise.all([loadBlogPostBySlug(slug), loadBlogNeighborsBySlug(slug)]).then(([p, n]) => {
+    Promise.all([loadBlogPostBySlug(slug), loadBlogNeighborsBySlug(slug), loadBlogPostViews(slug)]).then(([p, n, v]) => {
       if (!cancelled) {
         setPost(p);
         setNeighbors(n);
+        setViews(v);
       }
     });
+    // Increment view count (fire-and-forget)
+    incrementBlogPostViews(slug);
     return () => {
       cancelled = true;
     };
@@ -65,6 +73,12 @@ const BlogArticleView = () => {
 
   return (
     <SiteLayout>
+      <SEO
+        title={post.title}
+        description={post.excerpt || undefined}
+        image={post.thumbnailUrl}
+        path={`/writeups/${post.slug}`}
+      />
       <article className="container py-16 max-w-5xl">
         <Button asChild variant="ghost" size="sm" className="mb-8 -ml-2 text-muted-foreground hover:text-saber-blue animate-fade-in opacity-0" style={{ animationDelay: "0.05s" }}>
           <Link to="/writeups">
@@ -79,7 +93,19 @@ const BlogArticleView = () => {
           ) : null}
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4 text-sm text-muted-foreground">
             <time dateTime={post.createdAt}>{formatDate(post.createdAt)}</time>
-            <span className="font-mono tracking-[0.24em]">/{post.slug}</span>
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1 text-xs">
+                <Clock className="h-3 w-3" />
+                {estimateReadTime(post.content, post.contentFormat)} min read
+              </span>
+              {views !== null && (
+                <span className="flex items-center gap-1 text-xs">
+                  <Eye className="h-3 w-3" />
+                  {(views + 1).toLocaleString()} view{views + 1 !== 1 ? "s" : ""}
+                </span>
+              )}
+              <span className="font-mono tracking-[0.24em]">/{post.slug}</span>
+            </div>
           </div>
           <h1 className="font-display text-3xl sm:text-4xl font-bold">{post.title}</h1>
           {(post.excerpt || post.tags.length > 0) && (

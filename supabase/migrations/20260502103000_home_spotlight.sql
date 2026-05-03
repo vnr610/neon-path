@@ -17,15 +17,18 @@ create table if not exists public.site_home (
 
 alter table public.site_home enable row level security;
 
+drop policy if exists "Site home is publicly readable" on public.site_home;
 create policy "Site home is publicly readable"
 on public.site_home for select
 using (true);
 
+drop policy if exists "Only admins can insert site home" on public.site_home;
 create policy "Only admins can insert site home"
 on public.site_home for insert
 to authenticated
 with check (public.has_role(auth.uid(), 'admin') and id = 1);
 
+drop policy if exists "Only admins can update site home" on public.site_home;
 create policy "Only admins can update site home"
 on public.site_home for update
 to authenticated

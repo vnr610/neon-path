@@ -1,11 +1,26 @@
+import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { PageHeader } from "@/components/saber/PageHeader";
 import { EmptyGlyph } from "@/components/saber/EmptyGlyph";
-import { User } from "lucide-react";
+import { SEO } from "@/components/saber/SEO";
+import { Button } from "@/components/ui/button";
+import { Download, User } from "lucide-react";
+import { loadSiteHome } from "@/lib/content";
 
 const About = () => {
+  const [resumeUrl, setResumeUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadSiteHome().then((s) => setResumeUrl(s.resumeUrl ?? null));
+  }, []);
+
   return (
     <SiteLayout>
+      <SEO
+        title="About"
+        description="The path, the discipline, the philosophy — about VNR610."
+        path="/about"
+      />
       <div className="container py-16 max-w-4xl">
         <PageHeader title="About" subtitle="The path, the discipline, the philosophy." />
 
@@ -22,6 +37,27 @@ const About = () => {
               <p className="font-mono text-xs text-saber-blue">Full Stack · Cybersec</p>
               <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mt-3">Location</p>
               <p className="font-mono text-xs text-muted-foreground">Nepal · Asia/Kathmandu</p>
+
+              {resumeUrl ? (
+                <div className="pt-4">
+                  <Button asChild size="sm" className="saber-border w-full bg-gradient-saber hover:opacity-90 text-primary-foreground border-0">
+                    <a href={resumeUrl} target="_blank" rel="noreferrer" download>
+                      <Download className="mr-2 h-3.5 w-3.5" />
+                      Download CV
+                    </a>
+                  </Button>
+                </div>
+              ) : (
+                <div className="pt-4">
+                  <div className="rounded-md border border-dashed border-border/60 px-3 py-2.5 text-center">
+                    <Download className="h-3.5 w-3.5 text-muted-foreground/30 mx-auto mb-1" />
+                    <p className="text-[10px] text-muted-foreground/40 font-mono leading-snug">
+                      CV not set.<br />
+                      <span className="text-muted-foreground/60">Admin → Home → Resume URL</span>
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

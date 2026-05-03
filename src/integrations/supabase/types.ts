@@ -153,6 +153,7 @@ export type Database = {
           leetcode_username: string | null
           hackthebox_username: string | null
           hackerone_username: string | null
+          resume_url: string | null
           updated_at: string
         }
         Insert: {
@@ -163,6 +164,7 @@ export type Database = {
           leetcode_username?: string | null
           hackthebox_username?: string | null
           hackerone_username?: string | null
+          resume_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -173,6 +175,7 @@ export type Database = {
           leetcode_username?: string | null
           hackthebox_username?: string | null
           hackerone_username?: string | null
+          resume_url?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -237,6 +240,90 @@ export type Database = {
           badge?: string | null
           created_at?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      contact_messages: {
+        Row: {
+          id: string
+          name: string
+          email: string
+          message: string
+          read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          email: string
+          message: string
+          read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          email?: string
+          message?: string
+          read?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      page_views: {
+        Row: {
+          id: string
+          path: string
+          referrer: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          path: string
+          referrer?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          path?: string
+          referrer?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      blog_post_views: {
+        Row: {
+          slug: string
+          views: number
+        }
+        Insert: {
+          slug: string
+          views?: number
+        }
+        Update: {
+          slug?: string
+          views?: number
+        }
+        Relationships: []
+      }
+      skill_progress_history: {
+        Row: {
+          id: string
+          skill_id: string
+          progress: number
+          recorded_at: string
+        }
+        Insert: {
+          id?: string
+          skill_id: string
+          progress: number
+          recorded_at?: string
+        }
+        Update: {
+          id?: string
+          skill_id?: string
+          progress?: number
+          recorded_at?: string
         }
         Relationships: []
       }

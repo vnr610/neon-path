@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { PageHeader } from "@/components/saber/PageHeader";
 import { EmptyState } from "@/components/saber/EmptyState";
-import { Award } from "lucide-react";import { loadCertifications, type Certification, formatDate } from "@/lib/content";
+import { SEO } from "@/components/saber/SEO";
+import { Award } from "lucide-react";
+import { loadCertifications, type Certification, formatDate } from "@/lib/content";
 
 const Certifications = () => {
   const [certifications, setCertifications] = useState<Certification[]>([]);
@@ -17,6 +19,11 @@ const Certifications = () => {
 
   return (
     <SiteLayout>
+      <SEO
+        title="Certifications"
+        description="Earned credentials and verified accomplishments."
+        path="/certifications"
+      />
       <div className="container py-16">
         <PageHeader title="Certifications" subtitle="Earned credentials and verified accomplishments." />
 

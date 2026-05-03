@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { Loader2, Lock, Swords, Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
@@ -22,7 +22,7 @@ const loginSchema = z.object({
 });
 
 const AdminLogin = () => {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, role, loading } = useAuth();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? "/admin";
 
@@ -32,9 +32,11 @@ const AdminLogin = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [status, setStatus] = useState<FormStatus>("idle");
   const [statusMessage, setStatusMessage] = useState<string | undefined>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // If already signed in as admin, redirect.
-  if (!loading && user && isAdmin) {
+  // If already signed in with any valid role, redirect.
+  if (!loading && user && role) {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     return <Navigate to={from} replace />;
   }
 
@@ -69,9 +71,14 @@ const AdminLogin = () => {
       return;
     }
 
-    // On success, AuthProvider's onAuthStateChange will update the session
-    // and the Navigate above will redirect to /admin automatically.
-    setStatus("idle");
+    // On success, AuthProvider's onAuthStateChange will update the session.
+    // Keep submitting state — the Navigate above will redirect once isAdmin resolves.
+    // If it takes too long, surface an error.
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      setStatus("error");
+      setStatusMessage("Signed in but could not verify your role. Check your account has been granted access.");
+    }, 8000);
   };
 
   return (

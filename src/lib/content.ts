@@ -71,6 +71,7 @@ export type SiteHomeSettings = {
   leetcodeUsername: string | null;
   hacktheboxUsername: string | null;
   hackeroneUsername: string | null;
+  resumeUrl: string | null;
 };
 
 const mapProjectFromDb = (row: any): Project => ({
@@ -398,6 +399,7 @@ export const loadSiteHome = async (): Promise<SiteHomeSettings> => {
       leetcodeUsername: null,
       hacktheboxUsername: null,
       hackeroneUsername: null,
+      resumeUrl: null,
     };
   }
   if (!data) {
@@ -408,6 +410,7 @@ export const loadSiteHome = async (): Promise<SiteHomeSettings> => {
       leetcodeUsername: null,
       hacktheboxUsername: null,
       hackeroneUsername: null,
+      resumeUrl: null,
     };
   }
   return {
@@ -417,6 +420,7 @@ export const loadSiteHome = async (): Promise<SiteHomeSettings> => {
     leetcodeUsername: data.leetcode_username,
     hacktheboxUsername: data.hackthebox_username,
     hackeroneUsername: data.hackerone_username,
+    resumeUrl: (data as any).resume_url ?? null,
   };
 };
 
@@ -431,6 +435,7 @@ export const saveSiteHomeSettings = async (patch: SiteHomeSettingsPatch): Promis
     leetcodeUsername: patch.leetcodeUsername !== undefined ? patch.leetcodeUsername : existing.leetcodeUsername,
     hacktheboxUsername: patch.hacktheboxUsername !== undefined ? patch.hacktheboxUsername : existing.hacktheboxUsername,
     hackeroneUsername: patch.hackeroneUsername !== undefined ? patch.hackeroneUsername : existing.hackeroneUsername,
+    resumeUrl: patch.resumeUrl !== undefined ? patch.resumeUrl : existing.resumeUrl,
   };
 
   const { error } = await supabase.from("site_home").upsert(
@@ -442,6 +447,7 @@ export const saveSiteHomeSettings = async (patch: SiteHomeSettingsPatch): Promis
       leetcode_username: merged.leetcodeUsername,
       hackthebox_username: merged.hacktheboxUsername,
       hackerone_username: merged.hackeroneUsername,
+      resume_url: merged.resumeUrl,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "id" },
@@ -680,4 +686,251 @@ export const deleteCertification = async (id: string) => {
   if (error) {
     console.error("Error deleting certification:", error);
   }
+};
+
+// ── CONTACT MESSAGES ──────────────────────────────────────────────────────────
+
+export type ContactMessage = {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+};
+
+export const submitContactMessage = async (
+  data: Pick<ContactMessage, "name" | "email" | "message">,
+): Promise<boolean> => {
+  const { error } = await supabase.from("contact_messages").insert({
+    name: data.name.trim(),
+    email: data.email.trim(),
+    message: data.message.trim(),
+  });
+  if (error) {
+    console.error("Error submitting contact message:", error);
+    return false;
+  }
+  return true;
+};
+
+export const loadContactMessages = async (): Promise<ContactMessage[]> => {
+  const { data, error } = await supabase
+    .from("contact_messages")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("Error loading contact messages:", error);
+    return [];
+  }
+  return (data || []).map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    message: row.message,
+    read: row.read,
+    createdAt: row.created_at,
+  }));
+};
+
+export const markContactMessageRead = async (id: string, read = true): Promise<boolean> => {
+  const { error } = await supabase.from("contact_messages").update({ read }).eq("id", id);
+  if (error) {
+    console.error("Error marking message read:", error);
+    return false;
+  }
+  return true;
+};
+
+export const deleteContactMessage = async (id: string): Promise<void> => {
+  const { error } = await supabase.from("contact_messages").delete().eq("id", id);
+  if (error) console.error("Error deleting contact message:", error);
+};
+
+// ── PAGE VIEW ANALYTICS ───────────────────────────────────────────────────────
+
+export const trackPageView = async (path: string): Promise<void> => {
+  try {
+    await supabase.from("page_views").insert({
+      path,
+      referrer: document.referrer || null,
+    });
+  } catch {
+    // silently fail — analytics should never break the page
+  }
+};
+
+export type PageViewStat = { path: string; count: number };
+
+export const loadPageViewStats = async (limit = 20): Promise<PageViewStat[]> => {
+  const { data, error } = await supabase
+    .from("page_views")
+    .select("path")
+    .order("created_at", { ascending: false })
+    .limit(5000);
+  if (error) {
+    console.error("Error loading page views:", error);
+    return [];
+  }
+  const counts: Record<string, number> = {};
+  for (const row of data || []) {
+    counts[row.path] = (counts[row.path] ?? 0) + 1;
+  }
+  return Object.entries(counts)
+    .map(([path, count]) => ({ path, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+};
+
+export const loadTotalPageViews = async (): Promise<number> => {
+  const { count, error } = await supabase
+    .from("page_views")
+    .select("id", { count: "exact", head: true });
+  if (error) return 0;
+  return count ?? 0;
+};
+
+// ── BLOG POST VIEW COUNTS ─────────────────────────────────────────────────────
+
+export const incrementBlogPostViews = async (slug: string): Promise<void> => {
+  try {
+    // Try update first
+    const { data } = await supabase
+      .from("blog_post_views")
+      .select("views")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (data) {
+      await supabase
+        .from("blog_post_views")
+        .update({ views: (data.views ?? 0) + 1 })
+        .eq("slug", slug);
+    } else {
+      await supabase.from("blog_post_views").insert({ slug, views: 1 });
+    }
+  } catch {
+    // silently fail
+  }
+};
+
+export const loadBlogPostViews = async (slug: string): Promise<number> => {
+  const { data } = await supabase
+    .from("blog_post_views")
+    .select("views")
+    .eq("slug", slug)
+    .maybeSingle();
+  return data?.views ?? 0;
+};
+
+// ── SKILL PROGRESS HISTORY ────────────────────────────────────────────────────
+
+export type SkillProgressPoint = { progress: number; recordedAt: string };
+
+export const loadSkillProgressHistory = async (skillId: string): Promise<SkillProgressPoint[]> => {
+  const { data, error } = await supabase
+    .from("skill_progress_history")
+    .select("progress, recorded_at")
+    .eq("skill_id", skillId)
+    .order("recorded_at", { ascending: true })
+    .limit(30);
+  if (error) return [];
+  return (data || []).map((row: any) => ({
+    progress: row.progress,
+    recordedAt: row.recorded_at,
+  }));
+};
+
+export const snapshotSkillProgress = async (skillId: string, progress: number): Promise<void> => {
+  await supabase.from("skill_progress_history").insert({ skill_id: skillId, progress });
+};
+
+/** Estimated reading time in minutes (200 wpm average). */
+export const estimateReadTime = (content: string, contentFormat: BlogContentFormat): number => {
+  const text =
+    contentFormat === "html"
+      ? content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()
+      : content.replace(/\s+/g, " ").trim();
+  const words = text.split(" ").filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+};
+
+/** Views grouped by day for the last N days — used in the analytics line chart. */
+export type DailyViewStat = { date: string; views: number };
+
+export const loadDailyPageViews = async (days = 30): Promise<DailyViewStat[]> => {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+
+  const { data, error } = await supabase
+    .from("page_views")
+    .select("created_at")
+    .gte("created_at", since.toISOString())
+    .order("created_at", { ascending: true });
+
+  if (error) return [];
+
+  const counts: Record<string, number> = {};
+  // Pre-fill all days with 0
+  for (let i = 0; i < days; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - (days - 1 - i));
+    const key = d.toISOString().slice(0, 10);
+    counts[key] = 0;
+  }
+  for (const row of data || []) {
+    const key = (row.created_at as string).slice(0, 10);
+    if (key in counts) counts[key] = (counts[key] ?? 0) + 1;
+  }
+
+  return Object.entries(counts).map(([date, views]) => ({ date, views }));
+};
+
+/** Unique visitor count approximated by distinct referrer+day combos (best-effort). */
+export const loadTodayPageViews = async (): Promise<number> => {
+  const today = new Date().toISOString().slice(0, 10);
+  const { count, error } = await supabase
+    .from("page_views")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", `${today}T00:00:00.000Z`)
+    .lte("created_at", `${today}T23:59:59.999Z`);
+  if (error) return 0;
+  return count ?? 0;
+};
+
+/** All-time daily views — groups every page_view row by date. */
+export const loadAllTimeDailyPageViews = async (): Promise<DailyViewStat[]> => {
+  const { data, error } = await supabase
+    .from("page_views")
+    .select("created_at")
+    .order("created_at", { ascending: true });
+
+  if (error) return [];
+
+  const counts: Record<string, number> = {};
+  for (const row of data || []) {
+    const key = (row.created_at as string).slice(0, 10);
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+
+  return Object.entries(counts)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, views]) => ({ date, views }));
+};
+
+/** Upload a resume/CV PDF to Supabase Storage and return its public URL. */
+export const uploadResume = async (file: File): Promise<string | null> => {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "pdf";
+  const key = `resume/cv-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from("blog-media").upload(key, file, {
+    cacheControl: "3600",
+    upsert: true,
+    contentType: file.type || "application/pdf",
+  });
+  if (error) {
+    console.error("Error uploading resume:", error);
+    return null;
+  }
+  const { data } = supabase.storage.from("blog-media").getPublicUrl(key);
+  return data.publicUrl;
 };

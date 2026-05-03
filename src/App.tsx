@@ -5,8 +5,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { RequireAdmin } from "@/components/auth/RequireAdmin";
-import { useEffect, useState } from "react";
-import { OfflineError } from "@/components/saber/OfflineError";
+import { RequireRole } from "@/components/auth/RequireRole";
+import { ThemeProvider } from "@/components/saber/ThemeProvider";
+import { usePageTracking } from "@/hooks/usePageTracking";
 
 import Index from "./pages/Index";
 import About from "./pages/About";
@@ -16,6 +17,7 @@ import Writeups from "./pages/Blog";
 import WriteupPost from "./pages/BlogPost";
 import Timeline from "./pages/Timeline";
 import Certifications from "./pages/Certifications";
+import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -27,64 +29,62 @@ import AdminProjects from "./pages/admin/AdminProjects";
 import AdminTimeline from "./pages/admin/AdminTimeline";
 import AdminCertifications from "./pages/admin/AdminCertifications";
 import AdminHome from "./pages/admin/AdminHome";
+import AdminMessages from "./pages/admin/AdminMessages";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 
 const queryClient = new QueryClient();
 
-function useOnlineStatus() {
-  const [online, setOnline] = useState(navigator.onLine);
-  useEffect(() => {
-    const on = () => setOnline(true);
-    const off = () => setOnline(false);
-    window.addEventListener("online", on);
-    window.addEventListener("offline", off);
-    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
-  }, []);
-  return online;
+/** Inner component so hooks can access router context */
+function AppRoutes() {
+  usePageTracking();
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/skills" element={<Skills />} />
+      <Route path="/projects" element={<Projects />} />
+      <Route path="/blog" element={<Writeups />} />
+      <Route path="/blog/:slug" element={<WriteupPost />} />
+      <Route path="/writeups" element={<Writeups />} />
+      <Route path="/writeups/:slug" element={<WriteupPost />} />
+      <Route path="/timeline" element={<Timeline />} />
+      <Route path="/certifications" element={<Certifications />} />
+      <Route path="/contact" element={<Contact />} />
+
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin/callback" element={<AdminCallback />} />
+      {/* Admin-only routes */}
+      <Route path="/admin" element={<RequireRole allow={["admin", "editor"]}><AdminDashboard /></RequireRole>} />
+      <Route path="/admin/home" element={<RequireRole allow={["admin"]}><AdminHome /></RequireRole>} />
+      <Route path="/admin/blog" element={<RequireRole allow={["admin", "editor"]}><AdminWriteups /></RequireRole>} />
+      <Route path="/admin/writeups" element={<RequireRole allow={["admin", "editor"]}><AdminWriteups /></RequireRole>} />
+      <Route path="/admin/skills" element={<RequireRole allow={["admin"]}><AdminSkills /></RequireRole>} />
+      <Route path="/admin/projects" element={<RequireRole allow={["admin"]}><AdminProjects /></RequireRole>} />
+      <Route path="/admin/timeline" element={<RequireRole allow={["admin"]}><AdminTimeline /></RequireRole>} />
+      <Route path="/admin/certifications" element={<RequireRole allow={["admin"]}><AdminCertifications /></RequireRole>} />
+      <Route path="/admin/messages" element={<RequireRole allow={["admin", "editor"]}><AdminMessages /></RequireRole>} />
+      <Route path="/admin/analytics" element={<RequireRole allow={["admin", "editor"]}><AdminAnalytics /></RequireRole>} />
+
+      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
 }
 
-const App = () => {
-  const online = useOnlineStatus();
-
-  if (!online) return <OfflineError />;
-
-  return (
+const App = () => (
+  <ThemeProvider>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/skills" element={<Skills />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/blog" element={<Writeups />} />
-              <Route path="/blog/:slug" element={<WriteupPost />} />
-              <Route path="/writeups" element={<Writeups />} />
-              <Route path="/writeups/:slug" element={<WriteupPost />} />
-              <Route path="/timeline" element={<Timeline />} />
-              <Route path="/certifications" element={<Certifications />} />
-
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin/callback" element={<AdminCallback />} />
-              <Route path="/admin" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
-              <Route path="/admin/home" element={<RequireAdmin><AdminHome /></RequireAdmin>} />
-              <Route path="/admin/blog" element={<RequireAdmin><AdminWriteups /></RequireAdmin>} />
-              <Route path="/admin/writeups" element={<RequireAdmin><AdminWriteups /></RequireAdmin>} />
-              <Route path="/admin/skills" element={<RequireAdmin><AdminSkills /></RequireAdmin>} />
-              <Route path="/admin/projects" element={<RequireAdmin><AdminProjects /></RequireAdmin>} />
-              <Route path="/admin/timeline" element={<RequireAdmin><AdminTimeline /></RequireAdmin>} />
-              <Route path="/admin/certifications" element={<RequireAdmin><AdminCertifications /></RequireAdmin>} />
-
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AppRoutes />
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
-  );
-};
+  </ThemeProvider>
+);
 
 export default App;

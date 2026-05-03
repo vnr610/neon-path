@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { Menu, X, Terminal, ShieldAlert } from "lucide-react";
+import { Menu, X, Swords, Terminal, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { LogoSaber } from "@/components/saber/LogoSaber";
 
 const links = [
   { to: "/", label: "Home" },
@@ -12,6 +11,7 @@ const links = [
   { to: "/writeups", label: "Writeups" },
   { to: "/timeline", label: "Timeline" },
   { to: "/certifications", label: "Certifications" },
+  { to: "/contact", label: "Contact" },
 ];
 
 /** Animated admin entry point — pulsing terminal icon when logged in as admin */
@@ -78,7 +78,7 @@ export function Navbar() {
             <svg viewBox="0 0 28 28" className="absolute inset-1 h-[calc(100%-8px)] w-[calc(100%-8px)] logo-ring-reverse text-foreground/25" fill="none">
               <circle cx="14" cy="14" r="10" stroke="currentColor" strokeWidth="0.5" />
             </svg>
-            <LogoSaber size={18} className="relative" />
+            <Swords className="relative h-4 w-4 text-saber-blue animate-saber-pulse" />
           </div>
           <div className="flex flex-col leading-none">
             <span className="font-display text-sm font-bold tracking-wider">VNR610</span>
@@ -112,7 +112,7 @@ export function Navbar() {
         </nav>
 
         {/* Desktop admin button */}
-        <div className="hidden md:flex items-center">
+        <div className="hidden md:flex items-center gap-2">
           <AdminButton />
         </div>
 

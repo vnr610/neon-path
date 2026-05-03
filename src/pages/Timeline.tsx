@@ -3,6 +3,7 @@ import { SiteLayout } from "@/components/layout/SiteLayout";
 import { PageHeader } from "@/components/saber/PageHeader";
 import { EmptyState } from "@/components/saber/EmptyState";
 import { Award, Code2, GitCommitVertical, Shield, Terminal, Trophy, Zap } from "lucide-react";
+import { SEO } from "@/components/saber/SEO";
 import { loadTimelineEntries, type TimelineEntry, formatDate } from "@/lib/content";
 import { type LucideIcon } from "lucide-react";
 
@@ -119,6 +120,11 @@ const Timeline = () => {
 
   return (
     <SiteLayout>
+      <SEO
+        title="Progress Timeline"
+        description="Every move tracked — writeups, projects, certs, platform activity."
+        path="/timeline"
+      />
       <div className="container py-16 max-w-3xl">
         <PageHeader
           title="Progress Timeline"

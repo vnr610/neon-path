@@ -1,17 +1,21 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AdminFormShell, type FormStatus } from "@/components/saber/AdminFormShell";
 import { FormField, FormSection, SaberInput } from "@/components/saber/FormField";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, LayoutTemplate } from "lucide-react";
-import { loadSiteHome, saveSiteHomeSettings } from "@/lib/content";
+import { ArrowRight, Download, ExternalLink, FileUp, LayoutTemplate, Loader2, X } from "lucide-react";
+import { loadSiteHome, saveSiteHomeSettings, uploadResume } from "@/lib/content";
 
 const AdminHome = () => {
   const [githubUsername, setGithubUsername] = useState("");
   const [leetcodeUsername, setLeetcodeUsername] = useState("");
   const [hacktheboxUsername, setHacktheboxUsername] = useState("");
   const [hackeroneUsername, setHackeroneUsername] = useState("");
+  const [resumeUrl, setResumeUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<FormStatus>("idle");
   const [statusMessage, setStatusMessage] = useState<string | undefined>(undefined);
   const [errors, setErrors] = useState<string[]>([]);
@@ -24,9 +28,30 @@ const AdminHome = () => {
       setLeetcodeUsername(s.leetcodeUsername ?? "");
       setHacktheboxUsername(s.hacktheboxUsername ?? "");
       setHackeroneUsername(s.hackeroneUsername ?? "");
+      setResumeUrl(s.resumeUrl ?? "");
     });
     return () => { cancelled = true; };
   }, []);
+
+  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError("File too large — max 10 MB.");
+      return;
+    }
+    setUploading(true);
+    setUploadError("");
+    const url = await uploadResume(file);
+    setUploading(false);
+    if (url) {
+      setResumeUrl(url);
+    } else {
+      setUploadError("Upload failed. Check storage bucket permissions.");
+    }
+    // Reset input so same file can be re-uploaded
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,6 +64,7 @@ const AdminHome = () => {
       leetcodeUsername: leetcodeUsername.trim() || null,
       hacktheboxUsername: hacktheboxUsername.trim() || null,
       hackeroneUsername: hackeroneUsername.trim() || null,
+      resumeUrl: resumeUrl.trim() || null,
     });
 
     if (!ok) {
@@ -57,9 +83,11 @@ const AdminHome = () => {
       setLeetcodeUsername(s.leetcodeUsername ?? "");
       setHacktheboxUsername(s.hacktheboxUsername ?? "");
       setHackeroneUsername(s.hackeroneUsername ?? "");
+      setResumeUrl(s.resumeUrl ?? "");
       setStatus("idle");
       setStatusMessage(undefined);
       setErrors([]);
+      setUploadError("");
     });
   };
 
@@ -133,6 +161,84 @@ const AdminHome = () => {
                 placeholder="vnr610"
                 maxLength={80}
               />
+            </FormField>
+            <FormField
+              id="resumeUrl"
+              label="Resume / CV"
+              optional
+              hint="Upload a PDF or paste a direct URL. Shown as a download button on the About page."
+            >
+              {/* Upload button */}
+              <div className="space-y-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  className="hidden"
+                  onChange={handleResumeUpload}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="saber-border shrink-0"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Uploading…</>
+                    ) : (
+                      <><FileUp className="mr-2 h-3.5 w-3.5" />Upload PDF</>
+                    )}
+                  </Button>
+                  {resumeUrl && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-foreground"
+                      asChild
+                    >
+                      <a href={resumeUrl} target="_blank" rel="noreferrer">
+                        <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                        Preview
+                      </a>
+                    </Button>
+                  )}
+                  {resumeUrl && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => setResumeUrl("")}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+
+                {uploadError && (
+                  <p className="text-xs text-destructive font-mono">{uploadError}</p>
+                )}
+
+                {/* Current URL display / manual override */}
+                {resumeUrl ? (
+                  <div className="flex items-center gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-2">
+                    <Download className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+                    <p className="font-mono text-[10px] text-muted-foreground truncate flex-1">{resumeUrl}</p>
+                  </div>
+                ) : (
+                  <SaberInput
+                    name="resumeUrl"
+                    value={resumeUrl}
+                    onChange={(e) => setResumeUrl(e.target.value)}
+                    placeholder="https://… or upload above"
+                    maxLength={500}
+                  />
+                )}
+              </div>
             </FormField>
           </FormSection>
         </AdminFormShell>

@@ -4,6 +4,8 @@ import { PageHeader } from "@/components/saber/PageHeader";
 import { EmptyState } from "@/components/saber/EmptyState";
 import { LevelBadge } from "@/components/saber/LevelBadge";
 import { SaberProgress } from "@/components/saber/SaberProgress";
+import { ScrollReveal } from "@/components/saber/ScrollReveal";
+import { SEO } from "@/components/saber/SEO";
 import { Code2, Shield, Sparkles, Trophy } from "lucide-react";
 import { loadSiteHome, loadSkills, type Skill, type SiteHomeSettings } from "@/lib/content";
 import { loadExternalAchievements, type ExternalAchievements } from "@/lib/externalAchievements";
@@ -67,6 +69,11 @@ const Skills = () => {
 
   return (
     <SiteLayout>
+      <SEO
+        title="Skills Dashboard"
+        description="Disciplines mapped across two realms — full stack craft and cyber defense."
+        path="/skills"
+      />
       <div className="container py-16">
         <PageHeader title="Skills Dashboard" subtitle="Disciplines mapped across two realms — full stack craft and cyber defense." />
 
@@ -140,22 +147,20 @@ const Skills = () => {
             ) : (
               <div className="space-y-5">
                 {fullStackSkills.map((skill, i) => (
-                  <div
-                    key={skill.id}
-                    className="saber-card p-5 animate-fade-left opacity-0"
-                    style={{ animationDelay: `${0.4 + i * 0.07}s` }}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold">{skill.name}</p>
-                        <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{skill.level}</p>
+                  <ScrollReveal key={skill.id} animation="fade-left" delay={i * 70}>
+                    <div className="saber-card p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold">{skill.name}</p>
+                          <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{skill.level}</p>
+                        </div>
+                        <LevelBadge label={skill.category === "fullstack" ? "Full Stack" : skill.category} variant={badgeVariant(skill.category)} />
                       </div>
-                      <LevelBadge label={skill.category === "fullstack" ? "Full Stack" : skill.category} variant={badgeVariant(skill.category)} />
+                      <div className="mt-5">
+                        <SaberProgress label="Progress" value={skill.progress} variant="blue" />
+                      </div>
                     </div>
-                    <div className="mt-5">
-                      <SaberProgress label="Progress" value={skill.progress} variant="blue" />
-                    </div>
-                  </div>
+                  </ScrollReveal>
                 ))}
               </div>
             )}
@@ -183,22 +188,20 @@ const Skills = () => {
             ) : (
               <div className="space-y-5">
                 {cyberSkills.map((skill, i) => (
-                  <div
-                    key={skill.id}
-                    className="saber-card p-5 animate-fade-right opacity-0"
-                    style={{ animationDelay: `${0.4 + i * 0.07}s` }}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold">{skill.name}</p>
-                        <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{skill.level}</p>
+                  <ScrollReveal key={skill.id} animation="fade-right" delay={i * 70}>
+                    <div className="saber-card p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold">{skill.name}</p>
+                          <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{skill.level}</p>
+                        </div>
+                        <LevelBadge label="Cybersecurity" variant={badgeVariant(skill.category)} />
                       </div>
-                      <LevelBadge label="Cybersecurity" variant={badgeVariant(skill.category)} />
+                      <div className="mt-5">
+                        <SaberProgress label="Progress" value={skill.progress} variant="purple" />
+                      </div>
                     </div>
-                    <div className="mt-5">
-                      <SaberProgress label="Progress" value={skill.progress} variant="purple" />
-                    </div>
-                  </div>
+                  </ScrollReveal>
                 ))}
               </div>
             )}
