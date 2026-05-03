@@ -4,8 +4,9 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AdminFormShell, type FormStatus } from "@/components/saber/AdminFormShell";
 import { FormField, FormSection, SaberInput } from "@/components/saber/FormField";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Download, ExternalLink, FileUp, ImagePlus, LayoutTemplate, Loader2, X } from "lucide-react";
+import { ArrowRight, Download, ExternalLink, FileUp, ImagePlus, LayoutTemplate, Loader2, Sparkles, Wand2, X } from "lucide-react";
 import { loadSiteHome, saveSiteHomeSettings, uploadResume, uploadBlogMedia } from "@/lib/content";
+import { useAiBlogAssist } from "@/hooks/useAiBlogAssist";
 
 const AdminHome = () => {
   // Handles
@@ -30,6 +31,7 @@ const AdminHome = () => {
   const [status, setStatus] = useState<FormStatus>("idle");
   const [statusMessage, setStatusMessage] = useState<string | undefined>(undefined);
   const [errors, setErrors] = useState<string[]>([]);
+  const ai = useAiBlogAssist();
 
   useEffect(() => {
     let cancelled = false;
@@ -70,6 +72,44 @@ const AdminHome = () => {
     setUploadingAvatar(false);
     if (url) { setAvatarUrl(url); } else { setAvatarError("Upload failed."); }
     if (avatarInputRef.current) avatarInputRef.current.value = "";
+  };
+
+  const handleAiWriteBio = async () => {
+    setStatus("submitting");
+    setStatusMessage("AI is writing your bio…");
+    setErrors([]);
+    const result = await ai.run({
+      action: "write-bio",
+      content: [githubUsername && `GitHub: ${githubUsername}`, hacktheboxUsername && "HackTheBox user", leetcodeUsername && "LeetCode user"].filter(Boolean).join(", ") || "Developer and security researcher",
+    });
+    if (result) {
+      setBio(result.trim());
+      setStatus("ready");
+      setStatusMessage("Bio written — review and personalise before saving.");
+    } else {
+      setStatus("error");
+      setErrors([ai.error || "AI bio generation failed."]);
+    }
+  };
+
+  const handleAiEnhanceBio = async () => {
+    if (!bio.trim()) {
+      setErrors(["Write a bio first before enhancing it."]);
+      setStatus("error");
+      return;
+    }
+    setStatus("submitting");
+    setStatusMessage("AI is enhancing your bio…");
+    setErrors([]);
+    const result = await ai.run({ action: "enhance-bio", content: bio });
+    if (result) {
+      setBio(result.trim());
+      setStatus("ready");
+      setStatusMessage("Bio enhanced — review before saving.");
+    } else {
+      setStatus("error");
+      setErrors([ai.error || "AI bio enhancement failed."]);
+    }
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -165,16 +205,32 @@ const AdminHome = () => {
 
             {/* Bio */}
             <FormField id="bio" label="Bio" optional hint="Write in plain text. Separate paragraphs with a blank line.">
-              <textarea
-                id="bio"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="I'm a developer and security researcher from Nepal..."
-                rows={6}
-                maxLength={2000}
-                className="w-full rounded-md border border-border/60 bg-background/60 px-4 py-2.5 text-sm font-mono placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40 focus:ring-1 focus:ring-foreground/20 transition-colors resize-none"
-              />
-              <p className="text-[10px] text-muted-foreground/40 text-right tabular-nums mt-1">{bio.length} / 2000</p>
+              <div className="space-y-2">
+                <div className="flex gap-2 mb-1">
+                  <Button type="button" variant="outline" size="sm"
+                    className="saber-border text-saber-blue border-saber-blue/40 hover:bg-saber-blue/10 gap-1.5"
+                    onClick={handleAiWriteBio} disabled={ai.loading} title="Write a bio from scratch using AI">
+                    {ai.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                    Write bio
+                  </Button>
+                  <Button type="button" variant="outline" size="sm"
+                    className="saber-border text-saber-blue border-saber-blue/40 hover:bg-saber-blue/10 gap-1.5"
+                    onClick={handleAiEnhanceBio} disabled={ai.loading} title="Improve existing bio with AI">
+                    {ai.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+                    Enhance
+                  </Button>
+                </div>
+                <textarea
+                  id="bio"
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="I'm a developer and security researcher from Nepal..."
+                  rows={6}
+                  maxLength={2000}
+                  className="w-full rounded-md border border-border/60 bg-background/60 px-4 py-2.5 text-sm font-mono placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40 focus:ring-1 focus:ring-foreground/20 transition-colors resize-none"
+                />
+                <p className="text-[10px] text-muted-foreground/40 text-right tabular-nums">{bio.length} / 2000</p>
+              </div>
             </FormField>
           </FormSection>
 

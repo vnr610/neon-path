@@ -4,8 +4,9 @@ import { SiteLayout } from "@/components/layout/SiteLayout";
 import { PageHeader } from "@/components/saber/PageHeader";
 import { EmptyState } from "@/components/saber/EmptyState";
 import { SEO } from "@/components/saber/SEO";
-import { BookOpen, ArrowRight, Search, Clock, X } from "lucide-react";
+import { BookOpen, ArrowRight, Search, Clock, X, Pencil } from "lucide-react";
 import { loadBlogPosts, type BlogPost, formatDate, blogContentPreview, estimateReadTime } from "@/lib/content";
+import { useAuth } from "@/hooks/useAuth";
 
 const PAGE_SIZE = 6;
 
@@ -14,6 +15,8 @@ const Blog = () => {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const { role } = useAuth();
+  const canEdit = role === "admin" || role === "editor";
 
   useEffect(() => {
     loadBlogPosts().then((data) => {
@@ -155,7 +158,7 @@ const Blog = () => {
                         ))}
                       </div>
                     )}
-                    <div className="mt-5">
+                    <div className="mt-5 flex items-center gap-3">
                       <Link
                         to={`/writeups/${post.slug}`}
                         className="text-sm uppercase tracking-[0.2em] text-saber-blue hover:underline inline-flex items-center gap-2"
@@ -163,6 +166,16 @@ const Blog = () => {
                         Read writeup
                         <ArrowRight className="h-3.5 w-3.5" />
                       </Link>
+                      {canEdit && (
+                        <Link
+                          to={`/admin/writeups?edit=${post.slug}`}
+                          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border/60 text-[10px] uppercase tracking-[0.2em] font-mono text-muted-foreground hover:text-saber-blue hover:border-saber-blue/40 transition-colors"
+                          title="Edit this post"
+                        >
+                          <Pencil className="h-3 w-3" />
+                          Edit
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </article>

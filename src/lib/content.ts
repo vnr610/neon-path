@@ -13,6 +13,8 @@ export type BlogPost = {
   thumbnailUrl?: string;
   tags: string[];
   createdAt: string;
+  /** Display name of the author. Falls back to site owner name if blank. */
+  author?: string;
 };
 
 export type BlogNeighbor = { slug: string; title: string };
@@ -27,6 +29,7 @@ const mapBlogFromDb = (row: any): BlogPost => ({
   thumbnailUrl: row.thumbnail_url || undefined,
   tags: row.tags || [],
   createdAt: row.created_at,
+  author: row.author || undefined,
 });
 
 /** Plain-text preview for list cards (strips HTML from Word imports). */
@@ -203,6 +206,7 @@ export const addBlogPost = async (post: Omit<BlogPost, "id" | "createdAt">) => {
       content_format: post.contentFormat,
       thumbnail_url: post.thumbnailUrl || null,
       tags: post.tags,
+      author: post.author || null,
     })
     .select()
     .single();
@@ -226,6 +230,7 @@ export const updateBlogPost = async (id: string, updates: Partial<Omit<BlogPost,
       ...(updates.contentFormat !== undefined && { content_format: updates.contentFormat }),
       ...(updates.thumbnailUrl !== undefined && { thumbnail_url: updates.thumbnailUrl || null }),
       ...(updates.tags !== undefined && { tags: updates.tags }),
+      ...(updates.author !== undefined && { author: updates.author || null }),
     })
     .eq("id", id)
     .select()

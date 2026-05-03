@@ -59,7 +59,15 @@ const Skills = () => {
   }, []);
 
   const fullStackSkills = skills.filter((skill) => skill.category === "fullstack");
-  const cyberSkills = skills.filter((skill) => skill.category === "cyber");
+  // Deduplicate cyber skills by name to guard against duplicate DB entries
+  const cyberSkillsRaw = skills.filter((skill) => skill.category === "cyber");
+  const seen = new Set<string>();
+  const cyberSkills = cyberSkillsRaw.filter((skill) => {
+    const key = skill.name.toLowerCase().trim();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   const githubHandle = toHandle(siteHome?.githubUsername, "github.com");
   const leetcodeHandle = toHandle(siteHome?.leetcodeUsername, "leetcode.com");
   const htbHandle = toHandle(siteHome?.hacktheboxUsername, "hackthebox.com");

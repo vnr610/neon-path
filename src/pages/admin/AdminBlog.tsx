@@ -4,6 +4,7 @@ import { AdminFormShell, type FormStatus } from "@/components/saber/AdminFormShe
 import { FormField, FormSection, SaberInput, SaberTextarea } from "@/components/saber/FormField";
 import { Button } from "@/components/ui/button";
 import { Edit3, ImageUp, Trash2, Sparkles, Wand2, FileText, Loader2 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import {
   addBlogPost,
   deleteBlogPost,
@@ -23,6 +24,7 @@ const blankBlogForm = {
   content: "",
   tags: "",
   thumbnailUrl: "",
+  author: "",
 };
 
 const AdminBlog = () => {
@@ -34,9 +36,35 @@ const AdminBlog = () => {
   const [statusMessage, setStatusMessage] = useState<string | undefined>(undefined);
   const [errors, setErrors] = useState<string[]>([]);
   const ai = useAiBlogAssist();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
-    loadBlogPosts().then(setPosts);
+    loadBlogPosts().then((data) => {
+      setPosts(data);
+      // Auto-open edit mode if ?edit=<id> or ?edit=<slug> is in the URL
+      const editParam = searchParams.get("edit");
+      if (editParam) {
+        const target = data.find((p) => p.id === editParam || p.slug === editParam);
+        if (target) {
+          setEditingId(target.id);
+          setFormData({
+            title: target.title,
+            slug: target.slug,
+            excerpt: target.excerpt,
+            content: target.content,
+            tags: target.tags.join(", "),
+            thumbnailUrl: target.thumbnailUrl || "",
+            author: target.author || "",
+          });
+          setStatus("ready");
+          setStatusMessage("Editing existing writeup.");
+          // Scroll to top of form
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        // Clean the param from URL without re-render loop
+        setSearchParams({}, { replace: true });
+      }
+    });
   }, []);
 
   const resetForm = () => {
@@ -56,6 +84,7 @@ const AdminBlog = () => {
       content: post.content,
       tags: post.tags.join(", "),
       thumbnailUrl: post.thumbnailUrl || "",
+      author: post.author || "",
     });
     setStatus("ready");
     setStatusMessage("Editing existing writeup.");
@@ -163,6 +192,56 @@ const AdminBlog = () => {
     }
   };
 
+  const handleAiSlug = async () => {
+    if (!formData.title.trim()) {
+      setErrors(["Add a title before generating a slug."]);
+      setStatus("error");
+      return;
+    }
+    setStatus("submitting");
+    setStatusMessage("AI is generating slug…");
+    setErrors([]);
+    const result = await ai.run({ action: "suggest-slug", title: formData.title });
+    if (result) {
+      // Sanitize: lowercase, hyphens only
+      const clean = result.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+      setFormData((prev) => ({ ...prev, slug: clean }));
+      setStatus("ready");
+      setStatusMessage("Slug generated — review before publishing.");
+    } else {
+      setStatus("error");
+      setErrors([ai.error || "AI slug generation failed."]);
+    }
+  };
+
+  const handleAiTags = async () => {
+    if (!formData.title.trim() && !formData.content.trim()) {
+      setErrors(["Add a title or content before suggesting tags."]);
+      setStatus("error");
+      return;
+    }
+    setStatus("submitting");
+    setStatusMessage("AI is suggesting tags…");
+    setErrors([]);
+    const result = await ai.run({
+      action: "suggest-tags",
+      title: formData.title,
+      content: formData.content,
+    });
+    if (result) {
+      // Merge with existing tags, deduplicate
+      const existing = formData.tags.split(",").map((t) => t.trim()).filter(Boolean);
+      const suggested = result.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+      const merged = Array.from(new Set([...existing, ...suggested])).join(", ");
+      setFormData((prev) => ({ ...prev, tags: merged }));
+      setStatus("ready");
+      setStatusMessage("Tags suggested — remove any that don't fit.");
+    } else {
+      setStatus("error");
+      setErrors([ai.error || "AI tag suggestion failed."]);
+    }
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setStatus("submitting");
@@ -174,6 +253,7 @@ const AdminBlog = () => {
     const excerpt = formData.excerpt.trim();
     const content = formData.content.trim();
     const thumbnailUrl = formData.thumbnailUrl.trim();
+    const author = formData.author.trim();
     const tags = formData.tags
       .split(",")
       .map((t) => t.trim())
@@ -204,6 +284,7 @@ const AdminBlog = () => {
         tags,
         contentFormat: "markdown",
         thumbnailUrl: thumbnailUrl || undefined,
+        author: author || undefined,
       });
       if (!updated) {
         setStatus("error");
@@ -221,6 +302,7 @@ const AdminBlog = () => {
         tags,
         contentFormat: "markdown",
         thumbnailUrl: thumbnailUrl || undefined,
+        author: author || undefined,
       });
       if (!created) {
         setStatus("error");
@@ -261,12 +343,28 @@ const AdminBlog = () => {
               />
             </FormField>
             <FormField id="slug" label="Slug" required hint="Lowercase, hyphen-separated. Auto-generated from title if blank.">
+              <div className="flex gap-2">
+                <SaberInput
+                  name="slug"
+                  value={formData.slug}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                  placeholder="writeup-slug"
+                  pattern="[a-z0-9-]+"
+                  className="flex-1"
+                />
+                <Button type="button" variant="outline" size="sm" className="saber-border text-saber-blue border-saber-blue/40 hover:bg-saber-blue/10 shrink-0"
+                  onClick={handleAiSlug} disabled={ai.loading} title="Generate slug from title">
+                  {ai.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+            </FormField>
+            <FormField id="author" label="Author" optional hint="Display name shown on the post. Defaults to site owner if blank.">
               <SaberInput
-                name="slug"
-                value={formData.slug}
-                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                placeholder="writeup-slug"
-                pattern="[a-z0-9-]+"
+                name="author"
+                value={formData.author}
+                onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                placeholder="VNR610"
+                maxLength={80}
               />
             </FormField>
             <FormField
@@ -326,14 +424,21 @@ const AdminBlog = () => {
 
           <FormSection title="Content">
             <FormField id="excerpt" label="Excerpt" optional hint="Short summary surfaced in lists and meta tags.">
-              <SaberTextarea
-                name="excerpt"
-                value={formData.excerpt}
-                onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
-                rows={2}
-                placeholder="A single line that draws the reader in…"
-                maxLength={240}
-              />
+              <div className="flex gap-2 items-start">
+                <SaberTextarea
+                  name="excerpt"
+                  value={formData.excerpt}
+                  onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+                  rows={2}
+                  placeholder="A single line that draws the reader in…"
+                  maxLength={240}
+                  className="flex-1"
+                />
+                <Button type="button" variant="outline" size="sm" className="saber-border text-saber-blue border-saber-blue/40 hover:bg-saber-blue/10 shrink-0 mt-0.5"
+                  onClick={handleAiSummarize} disabled={ai.loading} title="Generate excerpt from content">
+                  {ai.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
             </FormField>
             <FormField
               id="content"
@@ -392,12 +497,19 @@ const AdminBlog = () => {
 
           <FormSection title="Taxonomy">
             <FormField id="tags" label="Tags" optional hint="Comma-separated. Used for filtering and discovery.">
-              <SaberInput
-                name="tags"
-                value={formData.tags}
-                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                placeholder="cybersecurity, react, devlog"
-              />
+              <div className="flex gap-2">
+                <SaberInput
+                  name="tags"
+                  value={formData.tags}
+                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                  placeholder="cybersecurity, react, devlog"
+                  className="flex-1"
+                />
+                <Button type="button" variant="outline" size="sm" className="saber-border text-saber-blue border-saber-blue/40 hover:bg-saber-blue/10 shrink-0"
+                  onClick={handleAiTags} disabled={ai.loading} title="Suggest tags from title and content">
+                  {ai.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
             </FormField>
           </FormSection>
         </AdminFormShell>

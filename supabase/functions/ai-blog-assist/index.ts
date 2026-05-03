@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type Action = "generate" | "enhance" | "summarize";
+type Action = "generate" | "enhance" | "summarize" | "suggest-tags" | "suggest-slug" | "write-bio" | "enhance-bio";
 
 interface RequestBody {
   action: Action;
@@ -70,6 +70,44 @@ ${body.content?.slice(0, 2000) || ""}
 ---
 
 Return only the excerpt text.`;
+
+    case "suggest-tags":
+      return `${systemContext}
+
+Suggest 4-6 relevant tags for the following blog post.
+Tags should be lowercase, single words or short hyphenated phrases.
+Return ONLY a comma-separated list of tags, nothing else. Example: security, ctf, web-exploitation, writeup
+
+Title: ${body.title || ""}
+Content:
+---
+${body.content?.slice(0, 2000) || ""}
+---`;
+
+    case "suggest-slug":
+      return `Generate a clean URL slug for this blog post title.
+Rules:
+- Lowercase only
+- Hyphens instead of spaces
+- No special characters
+- Max 60 characters
+- Descriptive and SEO-friendly
+- Return ONLY the slug, nothing else
+
+Title: ${body.title || ""}`;
+
+    case "write-bio":
+      return `Write a short professional bio (2-3 sentences, max 300 characters) for a cybersecurity and fullstack developer portfolio.
+The bio should sound personal, technical, and confident — not corporate.
+Context: ${body.content || "Developer and security researcher"}
+Return only the bio text, no quotes or labels.`;
+
+    case "enhance-bio":
+      return `Improve the following developer bio. Keep it concise (2-3 sentences), personal, and technically credible.
+Fix grammar, improve flow, make it more engaging. Return only the improved bio text.
+
+Original bio:
+${body.content || ""}`;
 
     default:
       throw new Error(`Unknown action: ${body.action}`);

@@ -140,6 +140,92 @@ const Index = () => {
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-saber-blue/40 to-transparent" />
       </section>
 
+      {/* ── LATEST WRITEUPS ── */}
+      <section className="container py-20">
+        <ScrollReveal animation="fade-up">
+          <SectionHeader
+            eyebrow="Latest Writeups"
+            title="From the field notes"
+            description="Recent technical writeups, deep dives, and lessons from the path."
+          />
+        </ScrollReveal>
+
+        {!home ? (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="saber-card h-52 animate-pulse bg-muted/20" />
+            ))}
+          </div>
+        ) : home.offline || home.posts.length === 0 ? (
+          <ScrollReveal animation="scale-in" delay={100}>
+            <EmptyState
+              icon={home.offline ? WifiOff : BookOpen}
+              title={home.offline ? "You're offline" : "No writeups yet"}
+              description={
+                home.offline
+                  ? "Writeups couldn't be loaded. Check your connection and refresh."
+                  : "New writeups will appear here as they're published in the admin console."
+              }
+              hint={home.offline ? "Signal lost. Reconnect to resume." : "The first transmission is always the hardest."}
+              status={home.offline ? "signal :: lost" : "journal :: empty"}
+            />
+          </ScrollReveal>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {home.posts.map((post, i) => (
+              <ScrollReveal key={post.id} animation="fade-up" delay={i * 80}>
+                <Link to={`/writeups/${post.slug}`} className="saber-card flex flex-col h-full group hover:-translate-y-1 transition-transform duration-300 overflow-hidden">
+                  {post.thumbnailUrl && (
+                    <div className="overflow-hidden">
+                      <img
+                        src={post.thumbnailUrl}
+                        alt=""
+                        className="h-36 w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+                  )}
+                  <div className="p-6 flex flex-col flex-1">
+                    <div className="flex items-center gap-3 mb-3 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                      <span>{formatDate(post.createdAt)}</span>
+                      <span className="h-px w-3 bg-border" />
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {estimateReadTime(post.content, post.contentFormat)} min
+                      </span>
+                    </div>
+                    <h3 className="font-display text-base font-semibold mb-2 group-hover:text-saber-blue transition-colors line-clamp-2">
+                      {post.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground line-clamp-3 flex-1">
+                      {blogContentPreview(post, 120)}
+                    </p>
+                    {post.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-4">
+                        {post.tags.slice(0, 3).map((tag) => (
+                          <span key={tag} className="rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              </ScrollReveal>
+            ))}
+          </div>
+        )}
+
+        {home && !home.offline && home.posts.length > 0 && (
+          <ScrollReveal animation="fade-up" delay={300}>
+            <div className="mt-8">
+              <Button asChild variant="outline" className="saber-border">
+                <Link to="/writeups">All writeups <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              </Button>
+            </div>
+          </ScrollReveal>
+        )}
+      </section>
+
       {/* ── CURRENT FOCUS ── */}
       <section className="container py-20">
         <ScrollReveal animation="fade-up">
@@ -311,91 +397,6 @@ const Index = () => {
               );
             })}
           </div>
-        )}
-      </section>
-      {/* ── LATEST WRITEUPS ── */}
-      <section className="container py-20">
-        <ScrollReveal animation="fade-up">
-          <SectionHeader
-            eyebrow="Latest Writeups"
-            title="From the field notes"
-            description="Recent technical writeups, deep dives, and lessons from the path."
-          />
-        </ScrollReveal>
-
-        {!home ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="saber-card h-52 animate-pulse bg-muted/20" />
-            ))}
-          </div>
-        ) : home.offline || home.posts.length === 0 ? (
-          <ScrollReveal animation="scale-in" delay={100}>
-            <EmptyState
-              icon={home.offline ? WifiOff : BookOpen}
-              title={home.offline ? "You're offline" : "No writeups yet"}
-              description={
-                home.offline
-                  ? "Writeups couldn't be loaded. Check your connection and refresh."
-                  : "New writeups will appear here as they're published in the admin console."
-              }
-              hint={home.offline ? "Signal lost. Reconnect to resume." : "The first transmission is always the hardest."}
-              status={home.offline ? "signal :: lost" : "journal :: empty"}
-            />
-          </ScrollReveal>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {home.posts.map((post, i) => (
-              <ScrollReveal key={post.id} animation="fade-up" delay={i * 80}>
-                <Link to={`/writeups/${post.slug}`} className="saber-card flex flex-col h-full group hover:-translate-y-1 transition-transform duration-300 overflow-hidden">
-                  {post.thumbnailUrl && (
-                    <div className="overflow-hidden">
-                      <img
-                        src={post.thumbnailUrl}
-                        alt=""
-                        className="h-36 w-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    </div>
-                  )}
-                  <div className="p-6 flex flex-col flex-1">
-                    <div className="flex items-center gap-3 mb-3 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-                      <span>{formatDate(post.createdAt)}</span>
-                      <span className="h-px w-3 bg-border" />
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {estimateReadTime(post.content, post.contentFormat)} min
-                      </span>
-                    </div>
-                    <h3 className="font-display text-base font-semibold mb-2 group-hover:text-saber-blue transition-colors line-clamp-2">
-                      {post.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground line-clamp-3 flex-1">
-                      {blogContentPreview(post, 120)}
-                    </p>
-                    {post.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-4">
-                        {post.tags.slice(0, 3).map((tag) => (
-                          <span key={tag} className="rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              </ScrollReveal>
-            ))}
-          </div>
-        )}
-
-        {home && !home.offline && home.posts.length > 0 && (
-          <ScrollReveal animation="fade-up" delay={300}>
-            <div className="mt-8">
-              <Button asChild variant="outline" className="saber-border">
-                <Link to="/writeups">All writeups <ArrowRight className="ml-2 h-4 w-4" /></Link>
-              </Button>
-            </div>
-          </ScrollReveal>
         )}
       </section>
     </SiteLayout>
