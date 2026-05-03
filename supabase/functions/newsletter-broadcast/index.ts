@@ -1,5 +1,6 @@
 /**
- * newsletter-broadcast — sends newsletter to all subscribers via Gmail REST API.
+ * newsletter-broadcast — sends newsletter to all subscribers via Resend.
+ * Uses verified domain sender vnr610@manojmagar.info.np — works for any recipient.
  */
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
@@ -10,64 +11,12 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-async function getAccessToken(): Promise<string> {
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: Deno.env.get("GMAIL_CLIENT_ID")!,
-      client_secret: Deno.env.get("GMAIL_CLIENT_SECRET")!,
-      refresh_token: Deno.env.get("GMAIL_REFRESH_TOKEN")!,
-      grant_type: "refresh_token",
-    }),
-  });
-  if (!res.ok) throw new Error(`Token error: ${await res.text()}`);
-  const d = await res.json();
-  return d.access_token;
-}
-
-async function sendEmail(token: string, opts: {
-  from: string; to: string;
-  subject: string; html: string; text: string;
-}): Promise<void> {
-  const boundary = `b_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  const mime = [
-    `From: ${opts.from}`,
-    `To: ${opts.to}`,
-    `Subject: ${opts.subject}`,
-    `MIME-Version: 1.0`,
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/plain; charset=UTF-8`,
-    ``,
-    opts.text,
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/html; charset=UTF-8`,
-    ``,
-    opts.html,
-    ``,
-    `--${boundary}--`,
-  ].join("\r\n");
-
-  const raw = btoa(unescape(encodeURIComponent(mime)))
-    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-
-  const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ raw }),
-  });
-  if (!res.ok) throw new Error(`Gmail error (${res.status}): ${await res.text()}`);
-}
-
 function buildHtml(subject: string, body: string, siteUrl: string): string {
   const htmlBody = body.trim().split("\n\n")
     .map((p) => `<p style="margin:0 0 16px;font-size:14px;color:#ccc;line-height:1.7;">${p.replace(/\n/g, "<br/>")}</p>`)
     .join("");
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head>
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
 <body style="margin:0;padding:0;background:#0a0a0a;font-family:'Courier New',monospace;color:#f5f5f5;">
 <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;"><tr><td align="center">
 <table width="520" cellpadding="0" cellspacing="0" style="background:#0f0f0f;border:1px solid #222;border-radius:8px;overflow:hidden;max-width:520px;width:100%;">
@@ -106,17 +55,14 @@ serve(async (req) => {
       });
     }
 
-    const gmailUser = Deno.env.get("GMAIL_USER");
-    if (!gmailUser) {
-      return new Response(JSON.stringify({ error: "GMAIL_USER not configured" }), {
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendKey) {
+      return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), {
         status: 500, headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
-    const siteUrl = Deno.env.get("SITE_URL") ?? "https://vnr610.dev";
-
-    // Get access token once, reuse for all sends
-    const token = await getAccessToken();
+    const siteUrl = Deno.env.get("SITE_URL") ?? "https://www.manojmagar.info.np";
 
     // Load subscribers
     const supabase = createClient(
@@ -144,28 +90,39 @@ serve(async (req) => {
     let failed = 0;
     const errors: string[] = [];
 
+    // Send one per subscriber using verified domain sender
     for (const row of subscribers) {
       const email = (row as any).email as string;
-      try {
-        await sendEmail(token, {
-          from: `VNR610 Realm <${gmailUser}>`,
-          to: email,
+
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "VNR610 Realm <vnr610@manojmagar.info.np>",
+          to: [email],
           subject: subject.trim(),
           html,
           text,
-        });
+        }),
+      });
+
+      if (res.ok) {
         sent++;
         console.log(`✓ ${email}`);
-      } catch (err) {
-        const msg = String(err);
-        errors.push(`${email}: ${msg}`);
-        console.error(`✗ ${email}: ${msg}`);
+      } else {
+        const err = await res.text();
+        errors.push(`${email}: ${err}`);
+        console.error(`✗ ${email}: ${err}`);
         failed++;
       }
-      await new Promise((r) => setTimeout(r, 200));
+
+      await new Promise((r) => setTimeout(r, 100));
     }
 
-    console.log(`Done: ${sent} sent, ${failed} failed`);
+    console.log(`Broadcast: ${sent} sent, ${failed} failed`);
 
     return new Response(
       JSON.stringify({ status: "ok", sent, failed, errors }),

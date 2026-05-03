@@ -117,6 +117,7 @@ const AdminNewsletter = () => {
   const [redirectUrl, setRedirectUrl] = useState("");
   const [broadcastStatus, setBroadcastStatus] = useState<BroadcastStatus>("idle");
   const [broadcastMsg, setBroadcastMsg] = useState("");
+  const [failedEmails, setFailedEmails] = useState<string[]>([]);
   const [aiAnimating, setAiAnimating] = useState(false);
   const [aiGenerated, setAiGenerated] = useState(false);
 
@@ -209,6 +210,9 @@ const AdminNewsletter = () => {
       if (error) throw error;
       setBroadcastStatus("success");
       setBroadcastMsg(`Sent to ${data?.sent ?? 0} subscriber${data?.sent !== 1 ? "s" : ""}.`);
+      setFailedEmails(
+        (data?.errors ?? []).map((e: string) => e.split(":")[0].trim()).filter(Boolean)
+      );
       setSubject("");
       setBody("");
       setRedirectUrl("");
@@ -273,16 +277,50 @@ const AdminNewsletter = () => {
           <h3 className="font-display text-lg font-semibold mb-6">Compose & send</h3>
 
           {broadcastStatus === "success" ? (
-            <div className="flex items-center gap-3 p-5 rounded-lg border border-border/60 bg-muted/20 animate-fade-up opacity-0">
-              <CheckCircle2 className="h-6 w-6 text-foreground shrink-0" />
-              <div>
-                <p className="text-sm font-semibold">Broadcast sent</p>
-                <p className="text-xs text-muted-foreground font-mono mt-0.5">{broadcastMsg}</p>
+            <div className="space-y-4 animate-fade-up opacity-0">
+              <div className="flex items-center gap-3 p-5 rounded-lg border border-border/60 bg-muted/20">
+                <CheckCircle2 className="h-6 w-6 text-foreground shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold">Broadcast sent</p>
+                  <p className="text-xs text-muted-foreground font-mono mt-0.5">{broadcastMsg}</p>
+                </div>
+                <Button variant="ghost" size="sm" className="ml-auto text-muted-foreground"
+                  onClick={() => { setBroadcastStatus("idle"); setFailedEmails([]); }}>
+                  New broadcast
+                </Button>
               </div>
-              <Button variant="ghost" size="sm" className="ml-auto text-muted-foreground"
-                onClick={() => setBroadcastStatus("idle")}>
-                New broadcast
-              </Button>
+
+              {/* Failed emails */}
+              {failedEmails.length > 0 && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Mail className="h-4 w-4 text-destructive/70 shrink-0" />
+                    <p className="text-xs font-semibold text-destructive/80">
+                      {failedEmails.length} email{failedEmails.length !== 1 ? "s" : ""} failed to deliver
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    {failedEmails.map((email) => (
+                      <div key={email} className="flex items-center justify-between gap-3 rounded-md bg-background/40 px-3 py-2">
+                        <span className="font-mono text-xs text-muted-foreground truncate">{email}</span>
+                        <a
+                          href={`mailto:${email}`}
+                          className="text-[10px] font-mono text-saber-blue hover:underline shrink-0"
+                        >
+                          Send manually
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/50 font-mono mt-3">
+                    These addresses may not be verified in Resend. Add them at{" "}
+                    <a href="https://resend.com/contacts" target="_blank" rel="noreferrer" className="text-saber-blue hover:underline">
+                      resend.com/contacts
+                    </a>
+                    {" "}or use "Send manually" to email them directly.
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <form onSubmit={handleBroadcast} className="space-y-6">

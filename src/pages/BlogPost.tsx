@@ -497,9 +497,6 @@ const BlogArticleView = () => {
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">Written by</p>
                   <p className="font-display text-base font-semibold">{authorName}</p>
-                  {siteProfile?.bio && (
-                    <p className="text-sm text-muted-foreground mt-1 leading-relaxed line-clamp-3">{siteProfile.bio}</p>
-                  )}
                   <div className="flex items-center gap-2 mt-3">
                     {siteProfile?.githubUsername && (
                       <a href={`https://github.com/${siteProfile.githubUsername}`} target="_blank" rel="noopener noreferrer"

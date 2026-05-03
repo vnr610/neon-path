@@ -1,5 +1,6 @@
 /**
- * newsletter-subscribe — saves subscriber and sends welcome email via Gmail REST API.
+ * newsletter-subscribe — saves subscriber and sends welcome email via Resend.
+ * Uses verified domain sender vnr610@manojmagar.info.np.
  */
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
@@ -9,59 +10,6 @@ const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-async function getAccessToken(): Promise<string> {
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: Deno.env.get("GMAIL_CLIENT_ID")!,
-      client_secret: Deno.env.get("GMAIL_CLIENT_SECRET")!,
-      refresh_token: Deno.env.get("GMAIL_REFRESH_TOKEN")!,
-      grant_type: "refresh_token",
-    }),
-  });
-  if (!res.ok) throw new Error(`Token error: ${await res.text()}`);
-  const d = await res.json();
-  return d.access_token;
-}
-
-async function sendEmail(opts: {
-  from: string; to: string;
-  subject: string; html: string; text: string;
-}): Promise<void> {
-  const token = await getAccessToken();
-  const boundary = `b_${Date.now()}`;
-  const mime = [
-    `From: ${opts.from}`,
-    `To: ${opts.to}`,
-    `Subject: ${opts.subject}`,
-    `MIME-Version: 1.0`,
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/plain; charset=UTF-8`,
-    ``,
-    opts.text,
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/html; charset=UTF-8`,
-    ``,
-    opts.html,
-    ``,
-    `--${boundary}--`,
-  ].join("\r\n");
-
-  const raw = btoa(unescape(encodeURIComponent(mime)))
-    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-
-  const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ raw }),
-  });
-  if (!res.ok) throw new Error(`Gmail error: ${await res.text()}`);
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -100,14 +48,20 @@ serve(async (req) => {
       }
     }
 
-    const gmailUser = Deno.env.get("GMAIL_USER");
-    const siteUrl = Deno.env.get("SITE_URL") ?? "https://vnr610.dev";
+    // Send welcome email via Resend
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+    const siteUrl = Deno.env.get("SITE_URL") ?? "https://www.manojmagar.info.np";
 
-    if (gmailUser) {
-      try {
-        await sendEmail({
-          from: `VNR610 Realm <${gmailUser}>`,
-          to: clean,
+    if (resendKey) {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "VNR610 Realm <vnr610@manojmagar.info.np>",
+          to: [clean],
           subject: "You're in — VNR610 Realm Codex",
           html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head>
 <body style="margin:0;padding:0;background:#0a0a0a;font-family:'Courier New',monospace;color:#f5f5f5;">
@@ -133,9 +87,11 @@ serve(async (req) => {
 </td></tr></table>
 </body></html>`,
           text: `You're subscribed to VNR610 Realm Codex.\n\nRead latest: ${siteUrl}/writeups`,
-        });
-      } catch (e) {
-        console.warn("Welcome email failed (non-critical):", e);
+        }),
+      });
+
+      if (!res.ok) {
+        console.warn("Welcome email failed:", await res.text());
       }
     }
 
