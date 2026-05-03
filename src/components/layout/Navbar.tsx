@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { Menu, X, Swords, Terminal, ShieldAlert } from "lucide-react";
+import { Menu, Search, X, Swords, Terminal, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const links = [
@@ -11,6 +11,7 @@ const links = [
   { to: "/writeups", label: "Writeups" },
   { to: "/timeline", label: "Timeline" },
   { to: "/certifications", label: "Certifications" },
+  { to: "/guestbook", label: "Guestbook" },
   { to: "/contact", label: "Contact" },
 ];
 
@@ -60,7 +61,7 @@ function AdminButton({ mobile = false }: { mobile?: boolean }) {
   );
 }
 
-export function Navbar() {
+export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
 
@@ -111,8 +112,17 @@ export function Navbar() {
           ))}
         </nav>
 
-        {/* Desktop admin button */}
+        {/* Desktop right side */}
         <div className="hidden md:flex items-center gap-2">
+          {/* Search trigger */}
+          <button
+            onClick={onSearchOpen}
+            className="flex items-center gap-2 h-8 px-3 rounded-md border border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors text-xs font-mono"
+            aria-label="Open search"
+          >
+            <Search className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline text-muted-foreground/50">⌘K</span>
+          </button>
           <AdminButton />
         </div>
 
