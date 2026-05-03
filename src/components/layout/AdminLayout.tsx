@@ -1,26 +1,26 @@
 import { ReactNode, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Home, FileText, Sparkles, FolderGit2, GitCommitVertical, Award, LogOut, Swords, Menu, X, Mail, BarChart2 } from "lucide-react";
+import { LayoutDashboard, Home, FileText, Sparkles, FolderGit2, GitCommitVertical, Award, LogOut, Swords, Menu, X, Mail, BarChart2, BookMarked, Rss } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-const allItems = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true, roles: ["admin", "editor"] },
-  { to: "/admin/home", label: "Home page", icon: Home, roles: ["admin"] },
-  { to: "/admin/writeups", label: "Writeups", icon: FileText, roles: ["admin", "editor"] },
-  { to: "/admin/skills", label: "Skills", icon: Sparkles, roles: ["admin"] },
-  { to: "/admin/projects", label: "Projects", icon: FolderGit2, roles: ["admin"] },
-  { to: "/admin/timeline", label: "Timeline", icon: GitCommitVertical, roles: ["admin"] },
-  { to: "/admin/certifications", label: "Certificates", icon: Award, roles: ["admin"] },
-  { to: "/admin/messages", label: "Messages", icon: Mail, roles: ["admin", "editor"] },
-  { to: "/admin/analytics", label: "Analytics", icon: BarChart2, roles: ["admin", "editor"] },
+const items = [
+  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/admin/home", label: "Home page", icon: Home },
+  { to: "/admin/writeups", label: "Writeups", icon: FileText },
+  { to: "/admin/skills", label: "Skills", icon: Sparkles },
+  { to: "/admin/projects", label: "Projects", icon: FolderGit2 },
+  { to: "/admin/timeline", label: "Timeline", icon: GitCommitVertical },
+  { to: "/admin/certifications", label: "Certificates", icon: Award },
+  { to: "/admin/messages", label: "Messages", icon: Mail },
+  { to: "/admin/guestbook", label: "Guestbook", icon: BookMarked },
+  { to: "/admin/newsletter", label: "Newsletter", icon: Rss },
+  { to: "/admin/analytics", label: "Analytics", icon: BarChart2 },
 ];
 
 export function AdminLayout({ children, title }: { children: ReactNode; title: string }) {
   const [open, setOpen] = useState(false);
-  const { signOut, role } = useAuth();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
-
-  const items = allItems.filter((it) => role && it.roles.includes(role));
 
   const handleSignOut = async () => {
     await signOut();
@@ -46,7 +46,7 @@ export function AdminLayout({ children, title }: { children: ReactNode; title: s
         </div>
 
         <p className="px-5 pt-6 pb-2 text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Console</p>
-        <nav className="flex-1 px-3 space-y-1">
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
           {items.map((it) => (
             <NavLink
               key={it.to}
@@ -61,7 +61,7 @@ export function AdminLayout({ children, title }: { children: ReactNode; title: s
                 }`
               }
             >
-              <it.icon className="h-4 w-4" />
+              <it.icon className="h-4 w-4 shrink-0" />
               {it.label}
             </NavLink>
           ))}

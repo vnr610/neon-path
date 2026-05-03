@@ -1001,3 +1001,48 @@ export const deleteGuestbookEntry = async (id: string): Promise<void> => {
   const { error } = await supabase.from("guestbook").delete().eq("id", id);
   if (error) console.error("Error deleting guestbook entry:", error);
 };
+
+// ── NEWSLETTER ────────────────────────────────────────────────────────────────
+
+export type NewsletterSubscriber = {
+  id: string;
+  email: string;
+  confirmed: boolean;
+  createdAt: string;
+};
+
+export const subscribeToNewsletter = async (email: string): Promise<"ok" | "duplicate" | "error"> => {
+  const { error } = await supabase.from("newsletter_subscribers").insert({ email: email.trim().toLowerCase() });
+  if (!error) return "ok";
+  // Postgres unique violation code
+  if (error.code === "23505") return "duplicate";
+  console.error("Newsletter subscribe error:", error);
+  return "error";
+};
+
+export const loadNewsletterSubscribers = async (): Promise<NewsletterSubscriber[]> => {
+  const { data, error } = await supabase
+    .from("newsletter_subscribers")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) { console.error("Error loading subscribers:", error); return []; }
+  return (data || []).map((row: any) => ({
+    id: row.id,
+    email: row.email,
+    confirmed: row.confirmed,
+    createdAt: row.created_at,
+  }));
+};
+
+export const deleteNewsletterSubscriber = async (id: string): Promise<void> => {
+  const { error } = await supabase.from("newsletter_subscribers").delete().eq("id", id);
+  if (error) console.error("Error deleting subscriber:", error);
+};
+
+export const loadNewsletterSubscriberCount = async (): Promise<number> => {
+  const { count, error } = await supabase
+    .from("newsletter_subscribers")
+    .select("id", { count: "exact", head: true });
+  if (error) return 0;
+  return count ?? 0;
+};

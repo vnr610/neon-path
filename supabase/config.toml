@@ -6,6 +6,12 @@ verify_jwt = false
 [functions.contact-notify]
 verify_jwt = false
 
+[functions.newsletter-subscribe]
+verify_jwt = false
+
+[functions.newsletter-broadcast]
+verify_jwt = false
+
 [functions.og-image]
 verify_jwt = false
 

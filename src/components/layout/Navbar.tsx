@@ -1,19 +1,24 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { Menu, Search, X, Swords, Terminal, ShieldAlert } from "lucide-react";
+import { Menu, Search, X, Swords, Terminal, ShieldAlert, LayoutGrid, FolderGit2, GitCommitVertical, Award, BookMarked } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-const links = [
+const primaryLinks = [
   { to: "/", label: "Home" },
   { to: "/about", label: "About" },
   { to: "/skills", label: "Skills" },
-  { to: "/projects", label: "Projects" },
   { to: "/writeups", label: "Writeups" },
-  { to: "/timeline", label: "Timeline" },
-  { to: "/certifications", label: "Certifications" },
-  { to: "/guestbook", label: "Guestbook" },
   { to: "/contact", label: "Contact" },
 ];
+
+const moreLinks = [
+  { to: "/projects", label: "Projects", icon: FolderGit2 },
+  { to: "/timeline", label: "Timeline", icon: GitCommitVertical },
+  { to: "/certifications", label: "Certifications", icon: Award },
+  { to: "/guestbook", label: "Guestbook", icon: BookMarked },
+];
+
+const allLinks = [...primaryLinks, ...moreLinks];
 
 /** Animated admin entry point — pulsing terminal icon when logged in as admin */
 function AdminButton({ mobile = false }: { mobile?: boolean }) {
@@ -32,11 +37,8 @@ function AdminButton({ mobile = false }: { mobile?: boolean }) {
         } text-muted-foreground hover:text-foreground transition-colors`}
         aria-label="Admin console"
       >
-        {/* Animated icon container */}
         <span className="relative flex h-5 w-5 items-center justify-center">
-          {/* Outer ping ring */}
           <span className="absolute inline-flex h-full w-full rounded-full bg-foreground/20 animate-ping opacity-60" />
-          {/* Icon */}
           <ShieldAlert className="relative h-3.5 w-3.5 text-foreground/70 group-hover:text-foreground transition-colors animate-saber-pulse" />
         </span>
         <span className="hidden sm:inline">Console</span>
@@ -44,7 +46,6 @@ function AdminButton({ mobile = false }: { mobile?: boolean }) {
     );
   }
 
-  // Not admin — show subtle login link
   return (
     <Link
       to="/admin/login"
@@ -61,6 +62,73 @@ function AdminButton({ mobile = false }: { mobile?: boolean }) {
   );
 }
 
+/** More dropdown — grid icon opens a small panel with the extra links */
+function MoreMenu() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const { pathname } = useLocation();
+  const isMoreActive = moreLinks.some((l) => pathname === l.to || pathname.startsWith(l.to + "/"));
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Close on route change
+  useEffect(() => { setOpen(false); }, [pathname]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label="More pages"
+        aria-expanded={open}
+        className={`relative flex items-center gap-1.5 px-3 py-2 text-xs uppercase tracking-[0.2em] transition-colors rounded-md ${
+          isMoreActive ? "text-saber-blue" : "text-muted-foreground hover:text-foreground"
+        } ${open ? "bg-muted/60" : ""}`}
+      >
+        <LayoutGrid className="h-3.5 w-3.5" />
+        More
+        {isMoreActive && !open && (
+          <span className="absolute left-3 right-3 -bottom-px h-px bg-saber-blue shadow-glow-blue" />
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute top-full right-0 mt-2 w-52 rounded-xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-lg overflow-hidden z-50 animate-scale-in">
+          <div className="p-1.5">
+            {moreLinks.map((l) => (
+              <NavLink
+                key={l.to}
+                to={l.to}
+                end
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs uppercase tracking-[0.2em] transition-colors ${
+                    isActive
+                      ? "bg-muted text-saber-blue"
+                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <l.icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-saber-blue" : "text-muted-foreground/60"}`} />
+                    {l.label}
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
@@ -71,11 +139,9 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5 group">
           <div className="relative h-7 w-7 flex items-center justify-center">
-            {/* Outer rotating ring */}
             <svg viewBox="0 0 28 28" className="absolute inset-0 h-full w-full logo-ring text-foreground/15" fill="none">
               <circle cx="14" cy="14" r="13" stroke="currentColor" strokeWidth="0.5" strokeDasharray="3 5" />
             </svg>
-            {/* Inner counter-rotating ring */}
             <svg viewBox="0 0 28 28" className="absolute inset-1 h-[calc(100%-8px)] w-[calc(100%-8px)] logo-ring-reverse text-foreground/25" fill="none">
               <circle cx="14" cy="14" r="10" stroke="currentColor" strokeWidth="0.5" />
             </svg>
@@ -89,7 +155,7 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1">
-          {links.map((l) => (
+          {primaryLinks.map((l) => (
             <NavLink
               key={l.to}
               to={l.to}
@@ -110,11 +176,12 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
               )}
             </NavLink>
           ))}
+          {/* More dropdown */}
+          <MoreMenu />
         </nav>
 
         {/* Desktop right side */}
         <div className="hidden md:flex items-center gap-2">
-          {/* Search trigger */}
           <button
             onClick={onSearchOpen}
             className="flex items-center gap-2 h-8 px-3 rounded-md border border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors text-xs font-mono"
@@ -136,11 +203,12 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
         </button>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile menu — shows all links */}
       {open && (
         <div className="md:hidden border-t border-border/60 bg-background/95 backdrop-blur-xl">
           <nav className="container py-4 flex flex-col gap-1">
-            {links.map((l) => (
+            {/* Primary links */}
+            {primaryLinks.map((l) => (
               <NavLink
                 key={l.to}
                 to={l.to}
@@ -153,6 +221,29 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
                 }
               >
                 {l.label}
+              </NavLink>
+            ))}
+            {/* More links with divider */}
+            <div className="my-1 border-t border-border/40" />
+            <p className="px-3 py-1 text-[9px] uppercase tracking-[0.35em] text-muted-foreground/40">More</p>
+            {moreLinks.map((l) => (
+              <NavLink
+                key={l.to}
+                to={l.to}
+                end
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-md text-xs uppercase tracking-[0.2em] ${
+                    isActive ? "bg-muted text-saber-blue" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <l.icon className={`h-3.5 w-3.5 ${isActive ? "text-saber-blue" : "text-muted-foreground/50"}`} />
+                    {l.label}
+                  </>
+                )}
               </NavLink>
             ))}
             <div onClick={() => setOpen(false)}>

@@ -33,6 +33,7 @@ import AdminHome from "./pages/admin/AdminHome";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminGuestbook from "./pages/admin/AdminGuestbook";
+import AdminNewsletter from "./pages/admin/AdminNewsletter";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,7 @@ function AppRoutes() {
         <Route path="/admin/messages" element={<RequireAdmin><AdminMessages /></RequireAdmin>} />
         <Route path="/admin/analytics" element={<RequireAdmin><AdminAnalytics /></RequireAdmin>} />
         <Route path="/admin/guestbook" element={<RequireAdmin><AdminGuestbook /></RequireAdmin>} />
+        <Route path="/admin/newsletter" element={<RequireAdmin><AdminNewsletter /></RequireAdmin>} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>
