@@ -3,7 +3,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Award, Code2, Edit3, GitCommitVertical, RefreshCw, Shield, Trash2 } from "lucide-react";
 import {
-  addTimelineEntry, deleteTimelineEntry, formatDate,
+  addTimelineEntry, deleteTimelineEntry, trashTimelineEntry, formatDate,
   loadBlogPosts, loadCertifications, loadProjects,
   loadSiteHome, loadSkills, loadTimelineEntries,
   updateTimelineEntry, type TimelineEntry,
@@ -191,7 +191,7 @@ const AdminTimeline = () => {
   useEffect(() => { void runScan(); }, [runScan]);
 
   const handleDelete = async (id: string) => {
-    await deleteTimelineEntry(id);
+    await trashTimelineEntry(id);
     setEntries(await loadTimelineEntries());
     if (editingId === id) setEditingId(null);
   };

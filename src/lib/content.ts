@@ -1082,3 +1082,169 @@ export const loadNewsletterSubscriberCount = async (): Promise<number> => {
   if (error) return 0;
   return count ?? 0;
 };
+
+// ─── RECYCLE BIN ─────────────────────────────────────────────────────────────
+
+export type RecycleBinItem = {
+  id: string;
+  itemType: "blog_post" | "project" | "skill" | "certification" | "timeline_entry" | "media";
+  itemId: string;
+  itemTitle: string;
+  data: Record<string, unknown>;
+  deletedAt: string;
+  expiresAt: string;
+};
+
+const mapRecycleBinItem = (row: any): RecycleBinItem => ({
+  id: row.id,
+  itemType: row.item_type,
+  itemId: row.item_id,
+  itemTitle: row.item_title,
+  data: row.data,
+  deletedAt: row.deleted_at,
+  expiresAt: row.expires_at,
+});
+
+export const loadRecycleBin = async (): Promise<RecycleBinItem[]> => {
+  const { data, error } = await supabase
+    .from("recycle_bin")
+    .select("*")
+    .order("deleted_at", { ascending: false });
+  if (error) { console.error("Error loading recycle bin:", error); return []; }
+  return (data || []).map(mapRecycleBinItem);
+};
+
+/** Move an item to the recycle bin instead of hard-deleting it */
+async function softDelete(
+  table: string,
+  id: string,
+  itemType: RecycleBinItem["itemType"],
+  titleField: string,
+): Promise<boolean> {
+  // Fetch the row first
+  const { data: row, error: fetchErr } = await supabase
+    .from(table).select("*").eq("id", id).maybeSingle();
+  if (fetchErr || !row) { console.error("softDelete fetch error:", fetchErr); return false; }
+
+  // Insert into recycle bin
+  const { error: insertErr } = await supabase.from("recycle_bin").insert({
+    item_type: itemType,
+    item_id: id,
+    item_title: row[titleField] ?? row.name ?? row.title ?? id,
+    data: row,
+  });
+  if (insertErr) { console.error("softDelete insert error:", insertErr); return false; }
+
+  // Hard delete the original
+  const { error: deleteErr } = await supabase.from(table).delete().eq("id", id);
+  if (deleteErr) { console.error("softDelete delete error:", deleteErr); return false; }
+
+  return true;
+}
+
+export const trashBlogPost = (id: string) => softDelete("blog_posts", id, "blog_post", "title");
+export const trashProject = (id: string) => softDelete("projects", id, "project", "name");
+export const trashSkill = (id: string) => softDelete("skills", id, "skill", "name");
+export const trashCertification = (id: string) => softDelete("certifications", id, "certification", "name");
+export const trashTimelineEntry = (id: string) => softDelete("timeline_entries", id, "timeline_entry", "title");
+
+/** Restore an item from the recycle bin back to its original table */
+export const restoreRecycleBinItem = async (item: RecycleBinItem): Promise<boolean> => {
+  const tableMap: Record<RecycleBinItem["itemType"], string> = {
+    blog_post: "blog_posts",
+    project: "projects",
+    skill: "skills",
+    certification: "certifications",
+    timeline_entry: "timeline_entries",
+    media: "blog_posts", // media is handled separately
+  };
+
+  const table = tableMap[item.itemType];
+  if (!table || item.itemType === "media") return false;
+
+  const { error } = await supabase.from(table).upsert(item.data, { onConflict: "id" });
+  if (error) { console.error("Restore error:", error); return false; }
+
+  // Remove from recycle bin
+  await supabase.from("recycle_bin").delete().eq("id", item.id);
+  return true;
+};
+
+/** Permanently delete an item from the recycle bin */
+export const permanentlyDelete = async (id: string): Promise<void> => {
+  await supabase.from("recycle_bin").delete().eq("id", id);
+};
+
+/** Permanently delete all items in the recycle bin */
+export const emptyRecycleBin = async (): Promise<void> => {
+  await supabase.from("recycle_bin").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+};
+
+/** Bulk trash blog posts */
+export const trashBlogPostsBulk = async (ids: string[]): Promise<void> => {
+  for (const id of ids) await trashBlogPost(id);
+};
+
+// ─── DEV LOGS ─────────────────────────────────────────────────────────────────
+
+export type DevLogMood = "focused" | "productive" | "learning" | "struggling" | "breakthrough" | "tired";
+
+export type DevLog = {
+  id: string;
+  logDate: string;       // YYYY-MM-DD
+  title: string;
+  content: string;
+  tags: string[];
+  mood: DevLogMood;
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const mapDevLog = (row: any): DevLog => ({
+  id: row.id,
+  logDate: row.log_date,
+  title: row.title,
+  content: row.content,
+  tags: row.tags || [],
+  mood: row.mood || "focused",
+  isPublic: row.is_public ?? true,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+export const loadDevLogs = async (publicOnly = true): Promise<DevLog[]> => {
+  let q = supabase.from("dev_logs").select("*").order("log_date", { ascending: false });
+  if (publicOnly) q = q.eq("is_public", true);
+  const { data, error } = await q;
+  if (error) { console.error("Error loading dev logs:", error); return []; }
+  return (data || []).map(mapDevLog);
+};
+
+export const loadDevLogByDate = async (date: string): Promise<DevLog | null> => {
+  const { data, error } = await supabase.from("dev_logs").select("*").eq("log_date", date).maybeSingle();
+  if (error || !data) return null;
+  return mapDevLog(data);
+};
+
+export const upsertDevLog = async (log: Omit<DevLog, "id" | "createdAt" | "updatedAt">): Promise<DevLog | null> => {
+  const { data, error } = await supabase
+    .from("dev_logs")
+    .upsert({
+      log_date: log.logDate,
+      title: log.title,
+      content: log.content,
+      tags: log.tags,
+      mood: log.mood,
+      is_public: log.isPublic,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "log_date" })
+    .select()
+    .single();
+  if (error) { console.error("Error upserting dev log:", error); return null; }
+  return mapDevLog(data);
+};
+
+export const deleteDevLog = async (id: string): Promise<void> => {
+  await supabase.from("dev_logs").delete().eq("id", id);
+};

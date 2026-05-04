@@ -12,6 +12,7 @@ import { Edit3, Trash2 } from "lucide-react";
 import {
   addCertification,
   deleteCertification,
+  trashCertification,
   loadCertifications,
   updateCertification,
   type Certification,
@@ -65,7 +66,7 @@ const AdminCertifications = () => {
   };
 
   const handleDelete = async (id: string) => {
-    await deleteCertification(id);
+    await trashCertification(id);
     const data = await loadCertifications();
     setCertifications(data);
     if (editingId === id) resetForm();

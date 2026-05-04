@@ -9,6 +9,8 @@ import {
   addBlogPost,
   deleteBlogPost,
   deleteBlogPostsBulk,
+  trashBlogPost,
+  trashBlogPostsBulk,
   loadAllBlogPosts,
   slugify,
   updateBlogPost,
@@ -112,7 +114,7 @@ const AdminBlog = () => {
   };
 
   const handleDelete = async (id: string) => {
-    await deleteBlogPost(id);
+    await trashBlogPost(id);
     const data = await loadAllBlogPosts();
     setPosts(data);
     if (editingId === id) resetForm();
@@ -123,7 +125,7 @@ const AdminBlog = () => {
     if (!selected.size) return;
     if (!confirm(`Delete ${selected.size} post${selected.size > 1 ? "s" : ""}? This cannot be undone.`)) return;
     setBulkDeleting(true);
-    await deleteBlogPostsBulk(Array.from(selected));
+    await trashBlogPostsBulk(Array.from(selected));
     const data = await loadAllBlogPosts();
     setPosts(data);
     setSelected(new Set());

@@ -9,6 +9,7 @@ import { Edit3, Trash2 } from "lucide-react";
 import {
   addProject,
   deleteProject,
+  trashProject,
   loadProjects,
   updateProject,
   type Project,
@@ -70,7 +71,7 @@ const AdminProjects = () => {
   };
 
   const handleDelete = async (id: string) => {
-    await deleteProject(id);
+    await trashProject(id);
     const data = await loadProjects();
     setProjects(data);
     if (editingId === id) resetForm();

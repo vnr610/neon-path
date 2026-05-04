@@ -38,6 +38,9 @@ import AdminMessages from "./pages/admin/AdminMessages";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminNewsletter from "./pages/admin/AdminNewsletter";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminRecycleBin from "./pages/admin/AdminRecycleBin";
+import AdminDevLog from "./pages/admin/AdminDevLog";
+import DevLogPage from "./pages/DevLog";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +81,9 @@ function AppRoutes() {
         <Route path="/admin/analytics" element={<RequireAdmin><AdminAnalytics /></RequireAdmin>} />
         <Route path="/admin/newsletter" element={<RequireAdmin><AdminNewsletter /></RequireAdmin>} />
         <Route path="/admin/settings" element={<RequireAdmin><AdminSettings /></RequireAdmin>} />
+        <Route path="/admin/recycle-bin" element={<RequireAdmin><AdminRecycleBin /></RequireAdmin>} />
+        <Route path="/admin/devlog" element={<RequireAdmin><AdminDevLog /></RequireAdmin>} />
+        <Route path="/devlog" element={<DevLogPage />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

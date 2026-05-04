@@ -5,7 +5,7 @@ import { ChevronDown, ChevronUp, Edit3, RefreshCw, Trash2 } from "lucide-react";
 import { LevelBadge } from "@/components/saber/LevelBadge";
 import { SaberProgress } from "@/components/saber/SaberProgress";
 import {
-  addSkill, deleteSkill, loadBlogPosts, loadCertifications,
+  addSkill, deleteSkill, trashSkill, loadBlogPosts, loadCertifications,
   loadProjects, loadSiteHome, loadSkills, updateSkill, type Skill,
 } from "@/lib/content";
 import { loadExternalAchievements } from "@/lib/externalAchievements";
@@ -112,7 +112,7 @@ const AdminSkills = () => {
   useEffect(() => { void runScan(); }, [runScan]);
 
   const handleDelete = async (id: string) => {
-    await deleteSkill(id);
+    await trashSkill(id);
     setSkills(await loadSkills());
     if (editingId === id) setEditingId(null);
   };
