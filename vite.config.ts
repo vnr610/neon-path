@@ -13,20 +13,33 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
   },
+  build: {
+    // Split large chunks to keep individual files under 2MB for PWA precaching
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-ui": ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-select", "@radix-ui/react-tabs"],
+          "vendor-supabase": ["@supabase/supabase-js"],
+          "vendor-query": ["@tanstack/react-query"],
+          "vendor-markdown": ["react-markdown", "react-syntax-highlighter", "remark-gfm"],
+          "vendor-misc": ["lucide-react", "date-fns", "zod", "dompurify"],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      // Use the custom offline fallback page
       selfDestroying: false,
       workbox: {
-        // Cache the app shell and all static assets
+        // Raise the limit to 4MB to handle larger chunks
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
-        // Serve offline.html when a navigation request fails (no network)
         navigateFallback: "/offline.html",
         navigateFallbackDenylist: [
-          // Don't intercept Supabase API calls
           /^\/rest\//,
           /^\/auth\//,
           /^\/storage\//,
@@ -34,7 +47,6 @@ export default defineConfig(({ mode }) => ({
         ],
         runtimeCaching: [
           {
-            // Cache Supabase REST responses for 5 minutes
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: "NetworkFirst",
             options: {
