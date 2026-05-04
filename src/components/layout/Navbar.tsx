@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { Menu, Search, X, Swords, Terminal, ShieldAlert, LayoutGrid, FolderGit2, GitCommitVertical, Award, BookOpen } from "lucide-react";
+import { Menu, Search, X, Swords, Terminal, ShieldAlert, LayoutGrid, FolderGit2, GitCommitVertical, Award, BookOpen, BookMarked } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCommandPalette } from "@/components/saber/CommandPalette";
 
@@ -17,6 +17,7 @@ const moreLinks = [
   { to: "/projects", label: "Projects", icon: FolderGit2 },
   { to: "/timeline", label: "Timeline", icon: GitCommitVertical },
   { to: "/certifications", label: "Certifications", icon: Award },
+  { to: "/guestbook", label: "Guestbook", icon: BookMarked },
 ];
 
 const allLinks = [...primaryLinks, ...moreLinks];
@@ -107,13 +108,6 @@ function MoreMenu() {
                 key={l.to}
                 to={l.to}
                 end
-                onClick={(e) => {
-                  if (pathname === l.to) {
-                    e.preventDefault();
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }
-                  setOpen(false);
-                }}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs uppercase tracking-[0.2em] transition-colors ${
                     isActive
@@ -147,14 +141,6 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
     else openPalette(true);
   };
 
-  // Clicking any nav link when already on that page scrolls to top
-  const handleNavClick = (e: React.MouseEvent, to: string) => {
-    if (pathname === to || (to === "/" && pathname === "/")) {
-      e.preventDefault();
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl">
       <div className="container flex h-16 items-center justify-between">
@@ -182,7 +168,6 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
               key={l.to}
               to={l.to}
               end={l.to === "/"}
-              onClick={(e) => handleNavClick(e, l.to)}
               className={({ isActive }) =>
                 `relative px-3 py-2 text-xs uppercase tracking-[0.2em] transition-colors ${
                   isActive ? "text-saber-blue" : "text-muted-foreground hover:text-foreground"
@@ -235,7 +220,7 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
                 key={l.to}
                 to={l.to}
                 end={l.to === "/"}
-                onClick={(e) => { handleNavClick(e, l.to); setOpen(false); }}
+                onClick={() => setOpen(false)}
                 className={({ isActive }) =>
                   `px-3 py-2.5 rounded-md text-xs uppercase tracking-[0.2em] ${
                     isActive ? "bg-muted text-saber-blue" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -253,7 +238,7 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
                 key={l.to}
                 to={l.to}
                 end
-                onClick={(e) => { handleNavClick(e, l.to); setOpen(false); }}
+                onClick={() => setOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-md text-xs uppercase tracking-[0.2em] ${
                     isActive ? "bg-muted text-saber-blue" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
