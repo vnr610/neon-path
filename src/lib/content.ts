@@ -622,7 +622,8 @@ export const loadTimelineEntries = async (): Promise<TimelineEntry[]> => {
   const { data, error } = await supabase
     .from("timeline_entries")
     .select("*")
-    .order("date", { ascending: false });
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error("Error loading timeline entries:", error);

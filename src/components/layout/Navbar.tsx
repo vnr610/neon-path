@@ -187,7 +187,7 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
         </nav>
 
         {/* Desktop right side */}
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-4">
           <button
             onClick={handleSearchClick}
             className="flex items-center justify-center h-9 w-9 rounded-md border border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"

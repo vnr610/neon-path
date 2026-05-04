@@ -4,6 +4,31 @@ import { Github, Linkedin, Mail, Download, Twitter } from "lucide-react";
 import { loadSiteHome, type SiteHomeSettings } from "@/lib/content";
 import { NewsletterForm } from "@/components/saber/NewsletterForm";
 
+/* ── Platform SVG icons not in Lucide ── */
+function HackTheBoxIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M11.996 0L3 4.8v9.6l8.996 4.8L21 14.4V4.8L11.996 0zm0 1.92l7.2 3.84v7.68l-7.2 3.84-7.2-3.84V5.76l7.2-3.84zm0 3.36L7.2 7.68v4.8l4.796 2.4 4.804-2.4V7.68L11.996 5.28zm0 1.44l3.204 1.68v3.36l-3.204 1.68-3.196-1.68V8.4l3.196-1.68z"/>
+    </svg>
+  );
+}
+
+function HackerOneIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M7.2 0v24h3.6v-9.6h2.4V24h3.6V0h-3.6v9.6h-2.4V0z"/>
+    </svg>
+  );
+}
+
+function LeetCodeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M13.483 0a1.374 1.374 0 0 0-.961.438L7.116 6.226l-3.854 4.126a5.266 5.266 0 0 0-1.209 2.104 5.35 5.35 0 0 0-.125.513 5.527 5.527 0 0 0 .062 2.362 5.83 5.83 0 0 0 .349 1.017 5.938 5.938 0 0 0 1.271 1.818l4.277 4.193.039.038c2.248 2.165 5.852 2.133 8.063-.074l2.396-2.392c.54-.54.54-1.414.003-1.955a1.378 1.378 0 0 0-1.951-.003l-2.396 2.392a3.021 3.021 0 0 1-4.205.038l-.02-.019-4.276-4.193c-.652-.64-.972-1.469-.948-2.263a2.68 2.68 0 0 1 .066-.523 2.545 2.545 0 0 1 .619-1.164L9.13 8.114c1.058-1.134 3.204-1.27 4.43-.278l3.501 2.831c.593.48 1.461.387 1.94-.207a1.384 1.384 0 0 0-.207-1.943l-3.5-2.831c-.8-.647-1.766-1.045-2.774-1.202l2.015-2.158A1.384 1.384 0 0 0 13.483 0zm-2.866 12.815a1.38 1.38 0 0 0-1.38 1.382 1.38 1.38 0 0 0 1.38 1.382H20.79a1.38 1.38 0 0 0 1.38-1.382 1.38 1.38 0 0 0-1.38-1.382z"/>
+    </svg>
+  );
+}
+
 /* ── Animated network graph with binary elements ── */
 function FooterAnimation() {
   // Fixed nodes — deterministic positions so no hydration mismatch
@@ -192,7 +217,7 @@ export function Footer() {
 
       {/* Newsletter strip */}
       <div className="border-b border-border/40 bg-muted/10">
-        <div className="container py-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div className="container py-8 flex flex-col sm:flex-row items-center sm:items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-md saber-border flex items-center justify-center shrink-0">
               <Mail className="h-4 w-4 text-muted-foreground/50" />
@@ -208,10 +233,10 @@ export function Footer() {
 
       {/* Main footer content */}
       <div className="container py-10">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+        <div className="flex flex-col md:flex-row items-center md:items-center justify-between gap-8">
 
           {/* Brand */}
-          <div>
+          <div className="text-center md:text-left">
             <p className="font-display text-sm tracking-wider">VNR610</p>
             <p className="text-xs text-muted-foreground mt-1 tracking-wider">
               Mastering Full Stack &amp; Cybersecurity
@@ -219,7 +244,7 @@ export function Footer() {
           </div>
 
           {/* Nav links */}
-          <nav className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             {[
               { to: "/", label: "Home" },
               { to: "/about", label: "About" },
@@ -235,7 +260,7 @@ export function Footer() {
           </nav>
 
           {/* Social icons */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             {githubUrl && (
               <a href={githubUrl} target="_blank" rel="noreferrer"
                 className="h-9 w-9 rounded-md saber-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
@@ -255,6 +280,30 @@ export function Footer() {
                 className="h-9 w-9 rounded-md saber-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Twitter / X">
                 <Twitter className="h-4 w-4" />
+              </a>
+            )}
+            {site?.hacktheboxUsername && (
+              <a href={`https://app.hackthebox.com/users/${site.hacktheboxUsername.replace(/^@/, "")}`}
+                target="_blank" rel="noreferrer"
+                className="h-9 w-9 rounded-md saber-border flex items-center justify-center text-muted-foreground hover:text-[#9fef00] transition-colors"
+                aria-label="Hack The Box">
+                <HackTheBoxIcon className="h-4 w-4" />
+              </a>
+            )}
+            {site?.hackeroneUsername && (
+              <a href={`https://hackerone.com/${site.hackeroneUsername.replace(/^@/, "")}`}
+                target="_blank" rel="noreferrer"
+                className="h-9 w-9 rounded-md saber-border flex items-center justify-center text-muted-foreground hover:text-[#e93c3c] transition-colors"
+                aria-label="HackerOne">
+                <HackerOneIcon className="h-4 w-4" />
+              </a>
+            )}
+            {site?.leetcodeUsername && (
+              <a href={`https://leetcode.com/u/${site.leetcodeUsername.replace(/^@/, "")}`}
+                target="_blank" rel="noreferrer"
+                className="h-9 w-9 rounded-md saber-border flex items-center justify-center text-muted-foreground hover:text-[#ffa116] transition-colors"
+                aria-label="LeetCode">
+                <LeetCodeIcon className="h-4 w-4" />
               </a>
             )}
             <Link to="/contact"
@@ -279,7 +328,7 @@ export function Footer() {
 
       {/* Copyright bar */}
       <div className="border-t border-border/40 bg-muted/5">
-        <div className="container py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="container py-4 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3 text-center sm:text-left">
 
           {/* Copyright */}
           <p className="font-mono text-[10px] text-muted-foreground/50 uppercase tracking-[0.25em]">
@@ -287,7 +336,7 @@ export function Footer() {
           </p>
 
           {/* Legal links */}
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-4">
             <Link to="/privacy"
               className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground/40 hover:text-muted-foreground transition-colors">
               Privacy Policy

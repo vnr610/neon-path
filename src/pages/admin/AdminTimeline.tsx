@@ -69,22 +69,6 @@ async function buildEntries(log: (m: string) => void): Promise<ScannedEntry[]> {
     });
   }
 
-  // GitHub
-  if (home.githubUsername && (achievements.githubPushes30d ?? 0) > 0) {
-    const p = achievements.githubPushes30d!;
-    // Use start of the 30-day window as the date — stable across re-scans within the same month
-    const windowStart = new Date();
-    windowStart.setDate(windowStart.getDate() - 30);
-    windowStart.setHours(0, 0, 0, 0);
-    entries.push({
-      date: windowStart.toISOString(),
-      realm: "Full Stack",
-      title: `${p} GitHub push event${p > 1 ? "s" : ""} in the last 30 days`,
-      desc: `Active coding streak on @${home.githubUsername.replace(/^@/, "")}`,
-    });
-    log(`  GitHub: ${p} pushes`);
-  }
-
   // LeetCode
   if ((achievements.leetcodeSolved ?? 0) > 0) {
     // Use start of current month — count changes slowly, re-scans stay stable
