@@ -19,10 +19,15 @@ export function Footer() {
     <footer className="border-t border-border/60 mt-24">
       {/* Newsletter strip */}
       <div className="border-b border-border/40 bg-muted/10">
-        <div className="container py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <p className="font-display text-sm font-semibold">Stay in the loop</p>
-            <p className="text-xs text-muted-foreground mt-0.5">New writeups and projects — no spam.</p>
+        <div className="container py-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-md saber-border flex items-center justify-center shrink-0">
+              <Mail className="h-4 w-4 text-muted-foreground/50" />
+            </div>
+            <div>
+              <p className="font-display text-sm font-semibold">Stay in the loop</p>
+              <p className="text-xs text-muted-foreground mt-0.5">New writeups and projects — no spam.</p>
+            </div>
           </div>
           <NewsletterForm variant="footer" />
         </div>

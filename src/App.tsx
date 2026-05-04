@@ -7,6 +7,8 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { RequireAdmin } from "@/components/auth/RequireAdmin";
 import { ThemeProvider } from "@/components/saber/ThemeProvider";
 import { CommandPalette, CommandPaletteProvider } from "@/components/saber/CommandPalette";
+import { OfflineDetector } from "@/components/saber/OfflineDetector";
+import { ErrorBoundary } from "@/components/saber/ErrorBoundary";
 import { usePageTracking } from "@/hooks/usePageTracking";
 
 import Index from "./pages/Index";
@@ -18,7 +20,6 @@ import WriteupPost from "./pages/BlogPost";
 import Timeline from "./pages/Timeline";
 import Certifications from "./pages/Certifications";
 import Contact from "./pages/Contact";
-import Guestbook from "./pages/Guestbook";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
@@ -34,7 +35,6 @@ import AdminCertifications from "./pages/admin/AdminCertifications";
 import AdminHome from "./pages/admin/AdminHome";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
-import AdminGuestbook from "./pages/admin/AdminGuestbook";
 import AdminNewsletter from "./pages/admin/AdminNewsletter";
 
 const queryClient = new QueryClient();
@@ -58,7 +58,6 @@ function AppRoutes() {
         <Route path="/timeline" element={<Timeline />} />
         <Route path="/certifications" element={<Certifications />} />
         <Route path="/contact" element={<Contact />} />
-        <Route path="/guestbook" element={<Guestbook />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
 
@@ -74,7 +73,6 @@ function AppRoutes() {
         <Route path="/admin/certifications" element={<RequireAdmin><AdminCertifications /></RequireAdmin>} />
         <Route path="/admin/messages" element={<RequireAdmin><AdminMessages /></RequireAdmin>} />
         <Route path="/admin/analytics" element={<RequireAdmin><AdminAnalytics /></RequireAdmin>} />
-        <Route path="/admin/guestbook" element={<RequireAdmin><AdminGuestbook /></RequireAdmin>} />
         <Route path="/admin/newsletter" element={<RequireAdmin><AdminNewsletter /></RequireAdmin>} />
 
         <Route path="*" element={<NotFound />} />
@@ -84,21 +82,25 @@ function AppRoutes() {
 }
 
 const App = () => (
-  <ThemeProvider>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <CommandPaletteProvider>
-            <AuthProvider>
-              <AppRoutes />
-            </AuthProvider>
-          </CommandPaletteProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ThemeProvider>
+  <ErrorBoundary>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <OfflineDetector>
+              <CommandPaletteProvider>
+                <AuthProvider>
+                  <AppRoutes />
+                </AuthProvider>
+              </CommandPaletteProvider>
+            </OfflineDetector>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  </ErrorBoundary>
 );
 
 export default App;

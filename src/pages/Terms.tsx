@@ -38,7 +38,7 @@ const Terms = () => {
             <ul>
               <li>Browse all public content freely</li>
               <li>Share links to content on this site</li>
-              <li>Submit contact messages and guestbook entries in good faith</li>
+              <li>Submit contact messages in good faith</li>
               <li>Subscribe to the newsletter</li>
             </ul>
             <p>You may not:</p>
@@ -61,10 +61,8 @@ const Terms = () => {
 
           <Section title="4. User-submitted content">
             <p>
-              By submitting a guestbook entry or contact message, you grant permission
-              to display that content on this site (guestbook entries, after moderation).
-              You are responsible for ensuring your submissions do not violate any laws
-              or third-party rights.
+              By submitting a contact message, you are responsible for ensuring your
+              submissions do not violate any laws or third-party rights.
             </p>
           </Section>
 

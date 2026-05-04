@@ -952,56 +952,6 @@ export const uploadResume = async (file: File): Promise<string | null> => {
   return data.publicUrl;
 };
 
-// ── GUESTBOOK ─────────────────────────────────────────────────────────────────
-
-export type GuestbookEntry = {
-  id: string;
-  name: string;
-  message: string;
-  approved: boolean;
-  createdAt: string;
-};
-
-export const loadGuestbookEntries = async (approvedOnly = true): Promise<GuestbookEntry[]> => {
-  let query = supabase
-    .from("guestbook")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (approvedOnly) query = query.eq("approved", true);
-  const { data, error } = await query;
-  if (error) { console.error("Error loading guestbook:", error); return []; }
-  return (data || []).map((row: any) => ({
-    id: row.id,
-    name: row.name,
-    message: row.message,
-    approved: row.approved,
-    createdAt: row.created_at,
-  }));
-};
-
-export const submitGuestbookEntry = async (
-  entry: Pick<GuestbookEntry, "name" | "message">,
-): Promise<boolean> => {
-  const { error } = await supabase.from("guestbook").insert({
-    name: entry.name.trim(),
-    message: entry.message.trim(),
-    approved: false,
-  });
-  if (error) { console.error("Error submitting guestbook entry:", error); return false; }
-  return true;
-};
-
-export const approveGuestbookEntry = async (id: string): Promise<boolean> => {
-  const { error } = await supabase.from("guestbook").update({ approved: true }).eq("id", id);
-  if (error) { console.error("Error approving guestbook entry:", error); return false; }
-  return true;
-};
-
-export const deleteGuestbookEntry = async (id: string): Promise<void> => {
-  const { error } = await supabase.from("guestbook").delete().eq("id", id);
-  if (error) console.error("Error deleting guestbook entry:", error);
-};
-
 // ── NEWSLETTER ────────────────────────────────────────────────────────────────
 
 export type NewsletterSubscriber = {
@@ -1045,4 +995,47 @@ export const loadNewsletterSubscriberCount = async (): Promise<number> => {
     .select("id", { count: "exact", head: true });
   if (error) return 0;
   return count ?? 0;
+};
+
+// ── BLOG COMMENTS ─────────────────────────────────────────────────────────────
+
+export type BlogComment = {
+  id: string;
+  postSlug: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+};
+
+export const loadLatestComments = async (limit = 8): Promise<BlogComment[]> => {
+  const { data, error } = await supabase
+    .from("blog_comments")
+    .select("id, post_slug, author_name, body, created_at")
+    .eq("approved", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) { console.error("Error loading comments:", error); return []; }
+  return (data || []).map((row: any) => ({
+    id: row.id,
+    postSlug: row.post_slug,
+    authorName: row.author_name,
+    body: row.body,
+    createdAt: row.created_at,
+  }));
+};
+
+export const addBlogComment = async (
+  postSlug: string,
+  authorName: string,
+  body: string,
+  authorEmail?: string,
+): Promise<boolean> => {
+  const { error } = await supabase.from("blog_comments").insert({
+    post_slug: postSlug,
+    author_name: authorName.trim(),
+    body: body.trim(),
+    author_email: authorEmail?.trim() || null,
+  });
+  if (error) { console.error("Error adding comment:", error); return false; }
+  return true;
 };

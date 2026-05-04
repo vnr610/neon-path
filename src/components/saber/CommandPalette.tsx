@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/command";
 import {
   Activity, Award, BookOpen, Code2, FolderGit2,
-  Home, Mail, Shield, Sparkles, User, BookMarked,
+  Home, Mail, Shield, Sparkles, User,
 } from "lucide-react";
 import { loadBlogPosts, loadProjects, loadSkills } from "@/lib/content";
 import type { BlogPost, Project, Skill } from "@/lib/content";
@@ -30,7 +30,6 @@ const PAGES = [
   { label: "Writeups",       to: "/writeups",        icon: BookOpen },
   { label: "Timeline",       to: "/timeline",        icon: Activity },
   { label: "Certifications", to: "/certifications",  icon: Award },
-  { label: "Guestbook",      to: "/guestbook",       icon: BookMarked },
   { label: "Contact",        to: "/contact",         icon: Mail },
 ];
 

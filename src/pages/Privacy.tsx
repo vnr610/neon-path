@@ -45,10 +45,6 @@ const Privacy = () => {
                 to the newsletter.
               </li>
               <li>
-                <strong>Guestbook entries</strong> — name and message when you sign the
-                guestbook.
-              </li>
-              <li>
                 <strong>Page view analytics</strong> — anonymised page paths and referrer
                 URLs to understand site traffic. No personally identifiable information is
                 stored in analytics.
@@ -61,7 +57,6 @@ const Privacy = () => {
             <ul>
               <li>Respond to contact form messages</li>
               <li>Send newsletter updates you subscribed to</li>
-              <li>Display approved guestbook entries publicly</li>
               <li>Understand how visitors use the site (aggregate analytics only)</li>
             </ul>
             <p>
@@ -99,7 +94,7 @@ const Privacy = () => {
           <Section title="7. Your rights">
             <p>You have the right to:</p>
             <ul>
-              <li>Request deletion of your data (contact form messages, newsletter subscription, guestbook entry)</li>
+              <li>Request deletion of your data (contact form messages, newsletter subscription)</li>
               <li>Unsubscribe from the newsletter at any time</li>
               <li>Request a copy of any data we hold about you</li>
             </ul>

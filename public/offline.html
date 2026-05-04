@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline — VNR610 Realm</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --fg: #f5f5f5;
+      --muted: #555;
+      --blue: #3b82f6;
+      --red: #ef4444;
+      --border: rgba(255,255,255,0.1);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* Scan line */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
+      );
+      pointer-events: none;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    /* ── Skull ── */
+    .skull-wrap {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      margin-bottom: 2rem;
+    }
+
+    .skull-ring {
+      position: absolute;
+      inset: 0;
+      animation: spin 30s linear infinite;
+    }
+    .skull-ring-rev {
+      position: absolute;
+      inset: 12px;
+      animation: spin 20s linear infinite reverse;
+    }
+
+    .skull-main {
+      position: absolute;
+      inset: 0;
+      transition: opacity 0.07s;
+    }
+    .skull-glitch-b {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      color: rgba(59,130,246,0.35);
+    }
+    .skull-glitch-r {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      color: rgba(239,68,68,0.25);
+    }
+
+    .glitching .skull-main   { opacity: 0.4; }
+    .glitching .skull-glitch-b { opacity: 1; transform: translate(-3px, 1px); }
+    .glitching .skull-glitch-r { opacity: 1; transform: translate(3px, -1px); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Terminal card ── */
+    .terminal {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.03);
+      padding: 1rem 1.25rem;
+      text-align: left;
+      font-size: 11px;
+      margin-bottom: 2rem;
+      min-height: 110px;
+    }
+    .terminal-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.3em;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+    .terminal-line { color: var(--muted); margin-bottom: 2px; opacity: 0; }
+    .terminal-line.error { color: rgba(239,68,68,0.8); }
+    .terminal-line.show { opacity: 1; }
+    .cursor {
+      display: inline-block;
+      width: 6px;
+      height: 14px;
+      background: rgba(255,255,255,0.7);
+      animation: blink 1s step-end infinite;
+      vertical-align: middle;
+      margin-left: 2px;
+      opacity: 0;
+    }
+    .cursor.show { opacity: 1; }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ── Main display ── */
+    .eyebrow {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.4em;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+    .big-text {
+      font-family: 'Courier New', monospace;
+      font-size: clamp(4rem, 15vw, 7rem);
+      font-weight: 900;
+      line-height: 1;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      user-select: none;
+      margin-bottom: 1rem;
+    }
+    .desc {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border: 1px solid rgba(59,130,246,0.4);
+      border-radius: 6px;
+      color: var(--blue);
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      cursor: pointer;
+      background: transparent;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: rgba(59,130,246,0.1); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Skull -->
+    <div class="skull-wrap" id="skullWrap">
+      <!-- Outer ring -->
+      <svg class="skull-ring" viewBox="0 0 200 200" fill="none">
+        <circle cx="100" cy="100" r="96" stroke="rgba(255,255,255,0.08)" stroke-width="0.5" stroke-dasharray="3 8"/>
+      </svg>
+      <!-- Inner ring -->
+      <svg class="skull-ring-rev" viewBox="0 0 200 200" fill="none">
+        <circle cx="100" cy="100" r="80" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+      </svg>
+      <!-- Glitch blue -->
+      <svg class="skull-glitch-b" viewBox="0 0 100 100" fill="currentColor"><use href="#skull"/></svg>
+      <!-- Glitch red -->
+      <svg class="skull-glitch-r" viewBox="0 0 100 100" fill="currentColor"><use href="#skull"/></svg>
+      <!-- Main skull -->
+      <svg class="skull-main" viewBox="0 0 100 100" fill="rgba(245,245,245,0.8)">
+        <defs>
+          <symbol id="skull" viewBox="0 0 100 100">
+            <path d="M50 8 C28 8 14 24 14 42 C14 54 20 64 30 70 L30 80 C30 83 33 86 36 86 L64 86 C67 86 70 83 70 80 L70 70 C80 64 86 54 86 42 C86 24 72 8 50 8 Z"/>
+            <ellipse cx="37" cy="44" rx="9" ry="10" fill="#0a0a0a"/>
+            <ellipse cx="63" cy="44" rx="9" ry="10" fill="#0a0a0a"/>
+            <path d="M46 58 L50 52 L54 58 L52 60 L48 60 Z" fill="#0a0a0a"/>
+            <rect x="36" y="80" width="2" height="6" fill="#0a0a0a" rx="1"/>
+            <rect x="44" y="80" width="2" height="6" fill="#0a0a0a" rx="1"/>
+            <rect x="52" y="80" width="2" height="6" fill="#0a0a0a" rx="1"/>
+            <rect x="60" y="80" width="2" height="6" fill="#0a0a0a" rx="1"/>
+            <path d="M50 14 L47 26 L52 32 L48 44" stroke="#0a0a0a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </symbol>
+        </defs>
+        <use href="#skull"/>
+      </svg>
+    </div>
+
+    <!-- Terminal -->
+    <div class="terminal">
+      <div class="terminal-label">⚡ realm :: network</div>
+      <div class="terminal-line" id="l0">&gt; pinging gateway…</div>
+      <div class="terminal-line" id="l1">&gt; no response from host</div>
+      <div class="terminal-line error" id="l2">&gt; ERROR: network unreachable</div>
+      <div class="terminal-line" id="l3">&gt; connection severed</div>
+      <span class="cursor" id="cursor"></span>
+    </div>
+
+    <!-- Display -->
+    <p class="eyebrow">connection severed</p>
+    <div class="big-text" id="bigText">OFFLINE</div>
+    <p class="desc">The realm is unreachable.<br>Check your connection and try again.</p>
+    <button class="btn" onclick="window.location.reload()">⟳ Reconnect</button>
+  </div>
+
+  <script>
+    // Boot sequence
+    const lines = ['l0','l1','l2','l3'];
+    let i = 0;
+    const boot = setInterval(() => {
+      if (i < lines.length) {
+        document.getElementById(lines[i]).classList.add('show');
+        i++;
+      } else {
+        clearInterval(boot);
+        document.getElementById('cursor').classList.add('show');
+        startGlitch();
+      }
+    }, 320);
+
+    // Glitch loop
+    function startGlitch() {
+      const wrap = document.getElementById('skullWrap');
+      const bigText = document.getElementById('bigText');
+      const CHARS = '!@#$%^&*<>?/\\|{}[]~`';
+      const orig = 'OFFLINE';
+
+      function doGlitch() {
+        wrap.classList.add('glitching');
+        let frame = 0;
+        const id = setInterval(() => {
+          frame++;
+          if (frame > 8) {
+            clearInterval(id);
+            wrap.classList.remove('glitching');
+            bigText.textContent = orig;
+            setTimeout(doGlitch, 2500 + Math.random() * 3000);
+            return;
+          }
+          bigText.textContent = orig.split('').map((c, idx) =>
+            idx < frame / 2 ? c : CHARS[Math.floor(Math.random() * CHARS.length)]
+          ).join('');
+        }, 60);
+      }
+
+      setTimeout(doGlitch, 1000);
+    }
+  </script>
+</body>
+</html>

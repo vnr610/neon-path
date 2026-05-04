@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ArrowLeft, Terminal } from "lucide-react";
+import { GlitchSkull } from "@/components/saber/GlitchSkull";
 
 const GLITCH_CHARS = "!@#$%^&*<>?/\\|{}[]~`";
 
@@ -33,7 +34,6 @@ const NotFound = () => {
 
   useEffect(() => {
     console.error("404:", location.pathname);
-    // Boot sequence
     const sequence = [
       "> initializing realm…",
       `> resolving path: ${location.pathname}`,
@@ -49,7 +49,6 @@ const NotFound = () => {
       } else {
         clearInterval(id);
         setBooted(true);
-        // Trigger glitch loop
         const glitchId = setInterval(() => {
           setGlitching(true);
           setTimeout(() => setGlitching(false), 600);
@@ -62,14 +61,18 @@ const NotFound = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 relative overflow-hidden">
-      {/* Grid background */}
       <div className="absolute inset-0 grid-bg pointer-events-none opacity-40" />
-      {/* Scan line */}
       <div className="scan-overlay" />
 
-      {/* Boot terminal */}
-      <div className="relative z-10 w-full max-w-lg">
-        <div className="saber-card p-6 mb-8 font-mono text-[11px] space-y-1 min-h-[120px]">
+      <div className="relative z-10 w-full max-w-lg flex flex-col items-center">
+
+        {/* Skull */}
+        <div className="mb-8 animate-fade-up opacity-0" style={{ animationDelay: "0.1s" }}>
+          <GlitchSkull size={180} />
+        </div>
+
+        {/* Boot terminal */}
+        <div className="w-full saber-card p-6 mb-8 font-mono text-[11px] space-y-1 min-h-[120px]">
           <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60 mb-3">
             <Terminal className="inline h-3 w-3 mr-1.5" />
             realm :: terminal
@@ -90,29 +93,26 @@ const NotFound = () => {
 
         {/* 404 display */}
         <div className={`text-center transition-opacity duration-500 ${booted ? "opacity-100" : "opacity-0"}`}>
-          <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground mb-4 animate-fade-up opacity-0" style={{ animationDelay: "1.6s" }}>
+          <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground mb-4">
             signal lost
           </p>
           <h1
-            className="font-display text-[8rem] sm:text-[10rem] font-black leading-none saber-text animate-fade-up opacity-0 select-none"
-            style={{ animationDelay: "1.7s" }}
+            className="font-display text-[8rem] sm:text-[10rem] font-black leading-none saber-text select-none cursor-default"
             onMouseEnter={() => setGlitching(true)}
             onMouseLeave={() => setGlitching(false)}
           >
             {glitch404}
           </h1>
-          <p className="font-mono text-sm text-muted-foreground mt-4 mb-8 animate-fade-up opacity-0" style={{ animationDelay: "1.85s" }}>
+          <p className="font-mono text-sm text-muted-foreground mt-4 mb-8">
             This path does not exist in the codex.
           </p>
-          <div className="animate-fade-up opacity-0" style={{ animationDelay: "2s" }}>
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-saber-blue hover:underline group"
-            >
-              <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-              Return to realm
-            </Link>
-          </div>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-saber-blue hover:underline group"
+          >
+            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+            Return to realm
+          </Link>
         </div>
       </div>
     </div>

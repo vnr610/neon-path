@@ -11,7 +11,7 @@ import { SEO } from "@/components/saber/SEO";
 import { ReadingProgress } from "@/components/saber/ReadingProgress";
 import { TableOfContents, extractTocFromMarkdown, extractTocFromHtml, type TocItem } from "@/components/saber/TableOfContents";
 import { ShareButtons } from "@/components/saber/ShareButtons";
-import { NewsletterForm } from "@/components/saber/NewsletterForm";
+import { GiscusComments } from "@/components/saber/GiscusComments";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useAiBlogAssist } from "@/hooks/useAiBlogAssist";
@@ -449,11 +449,6 @@ const BlogArticleView = () => {
                 </span>
               </div>
 
-              {/* Newsletter CTA */}
-              <div className="mt-8">
-                <NewsletterForm variant="inline" />
-              </div>
-
               {/* Prev / Next */}
               {neighbors && (neighbors.older || neighbors.newer) && (
                 <nav className="mt-8 grid gap-4 sm:grid-cols-2" aria-label="Adjacent writeups">
@@ -519,6 +514,9 @@ const BlogArticleView = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Comments */}
+              <GiscusComments term={post.slug} />
 
               {/* Related posts */}
               {related.length > 0 && (

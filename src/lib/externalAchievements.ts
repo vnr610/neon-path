@@ -130,27 +130,19 @@ async function fetchLeetCodeSolved(username: string): Promise<number | null> {
 }
 
 async function fetchHackTheBoxRank(username: string): Promise<string | null> {
-  try {
-    const res = await fetch(`https://labs.hackthebox.com/api/v4/public/profile/${username}`);
-    if (!res.ok) return null;
-    const data = (await res.json()) as { profile?: { rank?: string } };
-    return data.profile?.rank ?? null;
-  } catch {
-    return null;
-  }
+  // HTB public API requires authentication — skip client-side fallback
+  // The edge function handles this with HTB_APP_TOKEN
+  return null;
 }
 
 async function fetchHackerOneReputation(username: string): Promise<number | null> {
   try {
-    // The /<username>.json endpoint 404s for new accounts; hit the profile URL
-    // directly with an Accept: application/json header instead.
     const res = await fetch(`https://hackerone.com/${encodeURIComponent(username)}`, {
       headers: { Accept: "application/json" },
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { reputation?: number | null };
-    // reputation is null when the account exists but has no reports yet — show 0
-    return typeof data.reputation === "number" ? data.reputation : 0;
+    return typeof data.reputation === "number" ? data.reputation : null;
   } catch {
     return null;
   }
