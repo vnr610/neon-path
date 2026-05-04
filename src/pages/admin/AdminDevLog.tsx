@@ -1,16 +1,19 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { FormField, FormSection, SaberInput, SaberTextarea } from "@/components/saber/FormField";
 import { AdminFormShell, type FormStatus } from "@/components/saber/AdminFormShell";
 import {
-  Edit3, Trash2, Eye, EyeOff, Sparkles, Wand2, FileText, Loader2, BookOpen,
+  Edit3, Trash2, Eye, EyeOff, Sparkles, Wand2, FileText,
+  Loader2, ImageUp, Globe, FileEdit, Clock, Tag,
 } from "lucide-react";
 import {
-  loadDevLogs, upsertDevLog, deleteDevLog,
+  loadDevLogs, addDevLog, updateDevLog, deleteDevLog,
+  uploadDevLogThumbnail, slugify,
   type DevLog, type DevLogMood,
 } from "@/lib/content";
 import { useAiBlogAssist } from "@/hooks/useAiBlogAssist";
+import { useSearchParams } from "react-router-dom";
 
 const MOOD_OPTIONS: { value: DevLogMood; emoji: string; label: string }[] = [
   { value: "focused",      emoji: "🎯", label: "Focused" },
@@ -21,25 +24,28 @@ const MOOD_OPTIONS: { value: DevLogMood; emoji: string; label: string }[] = [
   { value: "tired",        emoji: "😴", label: "Tired" },
 ];
 
-function todayDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function formatDisplayDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+function todayDate() { return new Date().toISOString().slice(0, 10); }
+function formatDisplayDate(d: string) {
+  return new Date(d + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 }
 
 const blankForm = {
   logDate: todayDate(),
   title: "",
+  slug: "",
+  excerpt: "",
   content: "",
   tags: "",
+  author: "",
+  thumbnailUrl: "",
   mood: "focused" as DevLogMood,
   isPublic: true,
+  status: "published" as "draft" | "published",
+  publishAt: "",
 };
 
 const AdminDevLog = () => {
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [logs, setLogs] = useState<DevLog[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState(blankForm);
@@ -47,13 +53,33 @@ const AdminDevLog = () => {
   const [statusMessage, setStatusMessage] = useState<string | undefined>();
   const [errors, setErrors] = useState<string[]>([]);
   const ai = useAiBlogAssist();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const load = async () => {
-    const data = await loadDevLogs(false); // load all including private
+    const data = await loadDevLogs(false);
     setLogs(data);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load().then(() => {
+      const editParam = searchParams.get("edit");
+      if (editParam) {
+        setLogs((prev) => {
+          const target = prev.find((l) => l.id === editParam || l.slug === editParam);
+          if (target) openEdit(target);
+          return prev;
+        });
+        setSearchParams({}, { replace: true });
+      }
+    });
+  }, []);
+
+  // Auto-generate slug from title
+  useEffect(() => {
+    if (formData.title && !formData.slug) {
+      setFormData((d) => ({ ...d, slug: slugify(d.title) }));
+    }
+  }, [formData.title]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -63,15 +89,21 @@ const AdminDevLog = () => {
     setErrors([]);
   };
 
-  const handleEdit = (log: DevLog) => {
+  const openEdit = (log: DevLog) => {
     setEditingId(log.id);
     setFormData({
       logDate: log.logDate,
       title: log.title,
+      slug: log.slug || "",
+      excerpt: log.excerpt || "",
       content: log.content,
       tags: log.tags.join(", "),
+      author: log.author || "",
+      thumbnailUrl: log.thumbnailUrl || "",
       mood: log.mood,
       isPublic: log.isPublic,
+      status: log.status,
+      publishAt: "",
     });
     setStatus("ready");
     setStatusMessage("Editing existing entry.");
@@ -86,35 +118,54 @@ const AdminDevLog = () => {
     if (editingId === id) resetForm();
   };
 
+  const handleThumbnailUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !file.type.startsWith("image/")) return;
+    setStatus("submitting"); setStatusMessage("Uploading thumbnail…");
+    const url = await uploadDevLogThumbnail(file);
+    if (url) { setFormData((d) => ({ ...d, thumbnailUrl: url })); setStatus("ready"); setStatusMessage("Thumbnail uploaded."); }
+    else { setStatus("error"); setErrors(["Thumbnail upload failed."]); }
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setStatus("submitting");
-    setErrors([]);
+    setStatus("submitting"); setErrors([]);
 
     const title = formData.title.trim();
     const content = formData.content.trim();
+    const slug = formData.slug.trim() || slugify(title);
     const tags = formData.tags.split(",").map((t) => t.trim()).filter(Boolean);
 
     if (!title) { setErrors(["Title is required."]); setStatus("error"); return; }
     if (!content) { setErrors(["Content is required."]); setStatus("error"); return; }
+    if (slug && !/^[a-z0-9-]+$/.test(slug)) { setErrors(["Slug: lowercase letters, numbers and hyphens only."]); setStatus("error"); return; }
 
-    const saved = await upsertDevLog({
+    const payload = {
       logDate: formData.logDate,
       title,
+      slug: slug || undefined,
+      excerpt: formData.excerpt.trim() || undefined,
       content,
+      contentFormat: "markdown" as const,
+      thumbnailUrl: formData.thumbnailUrl.trim() || undefined,
+      author: formData.author.trim() || undefined,
       tags,
       mood: formData.mood,
       isPublic: formData.isPublic,
-    });
+      status: formData.status,
+    };
 
-    if (!saved) {
-      setStatus("error");
-      setErrors(["Save failed. Check your connection."]);
-      return;
+    let saved: DevLog | null;
+    if (editingId) {
+      saved = await updateDevLog(editingId, payload);
+    } else {
+      saved = await addDevLog(payload);
     }
 
+    if (!saved) { setStatus("error"); setErrors(["Save failed. Check your connection."]); return; }
     setStatus("success");
-    setStatusMessage("Entry saved.");
+    setStatusMessage(formData.status === "draft" ? "Draft saved." : editingId ? "Entry updated." : "Entry published.");
     await load();
     resetForm();
   };
@@ -122,78 +173,118 @@ const AdminDevLog = () => {
   // AI helpers
   const aiEnhance = async () => {
     if (!formData.content.trim()) return;
-    setStatus("submitting"); setStatusMessage("AI is enhancing…");
-    const result = await ai.run({ action: "enhance", content: formData.content });
-    if (result) { setFormData((d) => ({ ...d, content: result })); setStatus("ready"); setStatusMessage("Enhanced — review before saving."); }
+    setStatus("submitting"); setStatusMessage("AI enhancing…");
+    const r = await ai.run({ action: "enhance", content: formData.content });
+    if (r) { setFormData((d) => ({ ...d, content: r })); setStatus("ready"); setStatusMessage("Enhanced."); }
+    else { setStatus("error"); setErrors([ai.error || "AI failed."]); }
+  };
+
+  const aiGenerate = async () => {
+    if (!formData.title.trim()) { setErrors(["Add a title first."]); setStatus("error"); return; }
+    setStatus("submitting"); setStatusMessage("AI writing entry…");
+    const r = await ai.run({ action: "generate", title: formData.title, tags: formData.tags });
+    if (r) { setFormData((d) => ({ ...d, content: r })); setStatus("ready"); setStatusMessage("Generated — review before saving."); }
     else { setStatus("error"); setErrors([ai.error || "AI failed."]); }
   };
 
   const aiSummarize = async () => {
     if (!formData.content.trim()) return;
-    setStatus("submitting"); setStatusMessage("AI is summarizing…");
-    const result = await ai.run({ action: "summarize", title: formData.title, content: formData.content });
-    if (result) { setFormData((d) => ({ ...d, title: result.slice(0, 100) })); setStatus("ready"); setStatusMessage("Title generated."); }
+    setStatus("submitting"); setStatusMessage("AI summarizing…");
+    const r = await ai.run({ action: "summarize", title: formData.title, content: formData.content });
+    if (r) { setFormData((d) => ({ ...d, excerpt: r })); setStatus("ready"); setStatusMessage("Excerpt generated."); }
     else { setStatus("error"); setErrors([ai.error || "AI failed."]); }
   };
 
+  const aiSlug = async () => {
+    if (!formData.title.trim()) return;
+    const r = await ai.run({ action: "suggest-slug", title: formData.title });
+    if (r) {
+      const clean = r.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+      setFormData((d) => ({ ...d, slug: clean }));
+    }
+  };
+
   const aiTags = async () => {
-    setStatus("submitting"); setStatusMessage("AI is suggesting tags…");
-    const result = await ai.run({ action: "suggest-tags", title: formData.title, content: formData.content });
-    if (result) {
+    const r = await ai.run({ action: "suggest-tags", title: formData.title, content: formData.content });
+    if (r) {
       const existing = formData.tags.split(",").map((t) => t.trim()).filter(Boolean);
-      const suggested = result.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
-      const merged = Array.from(new Set([...existing, ...suggested])).join(", ");
-      setFormData((d) => ({ ...d, tags: merged }));
-      setStatus("ready"); setStatusMessage("Tags suggested.");
-    } else { setStatus("error"); setErrors([ai.error || "AI failed."]); }
+      const suggested = r.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+      setFormData((d) => ({ ...d, tags: Array.from(new Set([...existing, ...suggested])).join(", ") }));
+    }
   };
 
   return (
     <AdminLayout title="Dev Diary">
-      <div className="grid gap-8 lg:grid-cols-[minmax(560px,1fr)_320px]">
-
-        {/* ── Form ── */}
+      <div className="grid gap-8 lg:grid-cols-[minmax(620px,1fr)_340px]">
         <AdminFormShell
           eyebrow={editingId ? "edit entry" : "new entry"}
-          title={editingId ? "Update Log" : "Today's Log"}
-          description="Document what you coded, learned, and practiced today."
-          submitLabel={editingId ? "Update Entry" : "Save Entry"}
+          title={editingId ? "Update Entry" : "New Dev Log"}
+          description="Document what you coded, learned, and practiced. Write in Markdown."
+          submitLabel={editingId ? "Save Entry" : formData.status === "draft" ? "Save Draft" : "Publish Entry"}
           onSubmit={handleSubmit}
           onDiscard={resetForm}
           status={status}
           statusMessage={statusMessage}
           errors={errors}
         >
-          <FormSection title="Entry">
-            {/* Date */}
+          {/* ── Identity ── */}
+          <FormSection title="Identity">
             <FormField id="logDate" label="Date" required>
-              <SaberInput
-                type="date"
-                value={formData.logDate}
-                onChange={(e) => setFormData({ ...formData, logDate: e.target.value })}
-              />
+              <SaberInput type="date" value={formData.logDate}
+                onChange={(e) => setFormData({ ...formData, logDate: e.target.value })} />
             </FormField>
 
-            {/* Title */}
-            <FormField id="title" label="Title" required hint="What's the headline for today?">
+            <FormField id="title" label="Title" required hint="Keep under 80 characters.">
+              <SaberInput value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="What did you work on today?" maxLength={120} />
+            </FormField>
+
+            <FormField id="slug" label="Slug" optional hint="Auto-generated from title. Used for the entry URL.">
               <div className="flex gap-2">
-                <SaberInput
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Built auth flow, learned JWT internals…"
-                  maxLength={120}
-                  className="flex-1"
-                />
+                <SaberInput value={formData.slug}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") })}
+                  placeholder="my-entry-slug" className="flex-1" />
                 <Button type="button" variant="outline" size="sm"
                   className="saber-border text-saber-blue border-saber-blue/40 hover:bg-saber-blue/10 shrink-0"
-                  onClick={aiSummarize} disabled={ai.loading} title="Generate title from content">
-                  {ai.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                  onClick={aiSlug} disabled={ai.loading}>
+                  {ai.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                 </Button>
               </div>
             </FormField>
 
-            {/* Mood */}
-            <FormField id="mood" label="Mood" required hint="How did today feel?">
+            <FormField id="author" label="Author" optional>
+              <SaberInput value={formData.author}
+                onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                placeholder="VNR610" maxLength={80} />
+            </FormField>
+
+            <FormField id="thumbnailUrl" label="Thumbnail" optional hint="Upload or paste a URL.">
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" className="saber-border"
+                    onClick={() => imageInputRef.current?.click()}>
+                    <ImageUp className="h-4 w-4 mr-2" />Upload thumbnail
+                  </Button>
+                  {formData.thumbnailUrl && (
+                    <Button type="button" variant="ghost" size="sm"
+                      onClick={() => setFormData((d) => ({ ...d, thumbnailUrl: "" }))}>Remove</Button>
+                  )}
+                </div>
+                <input ref={imageInputRef} type="file" accept="image/*" className="sr-only" onChange={handleThumbnailUpload} />
+                <SaberInput type="url" value={formData.thumbnailUrl}
+                  onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
+                  placeholder="https://example.com/image.jpg" />
+                {formData.thumbnailUrl && (
+                  <img src={formData.thumbnailUrl} alt="" className="rounded-md border border-border/60 h-32 w-full object-cover" />
+                )}
+              </div>
+            </FormField>
+          </FormSection>
+
+          {/* ── Content ── */}
+          <FormSection title="Content">
+            <FormField id="mood" label="Mood" required>
               <div className="flex flex-wrap gap-2">
                 {MOOD_OPTIONS.map((m) => (
                   <button key={m.value} type="button"
@@ -209,97 +300,127 @@ const AdminDevLog = () => {
               </div>
             </FormField>
 
-            {/* Visibility */}
-            <FormField id="isPublic" label="Visibility" required>
-              <div className="flex gap-2">
-                <button type="button"
-                  onClick={() => setFormData({ ...formData, isPublic: true })}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-md border text-xs font-mono transition-colors ${
-                    formData.isPublic ? "border-green-500/60 text-green-400 bg-green-500/10" : "border-border/60 text-muted-foreground hover:border-foreground/40"
-                  }`}>
-                  <Eye className="h-3.5 w-3.5" /> Public
-                </button>
-                <button type="button"
-                  onClick={() => setFormData({ ...formData, isPublic: false })}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-md border text-xs font-mono transition-colors ${
-                    !formData.isPublic ? "border-amber-500/60 text-amber-400 bg-amber-500/10" : "border-border/60 text-muted-foreground hover:border-foreground/40"
-                  }`}>
-                  <EyeOff className="h-3.5 w-3.5" /> Private
-                </button>
-              </div>
-            </FormField>
-          </FormSection>
-
-          <FormSection title="Content">
-            {/* Tags */}
-            <FormField id="tags" label="Tags" optional hint="Comma-separated — e.g. react, auth, debugging">
-              <div className="flex gap-2">
-                <SaberInput
-                  value={formData.tags}
-                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  placeholder="react, supabase, ctf, python"
-                  className="flex-1"
-                />
+            <FormField id="excerpt" label="Excerpt" optional hint="Short summary shown in the list.">
+              <div className="flex gap-2 items-start">
+                <SaberTextarea value={formData.excerpt}
+                  onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+                  rows={2} placeholder="What's the TL;DR of today?" maxLength={240} className="flex-1" />
                 <Button type="button" variant="outline" size="sm"
-                  className="saber-border text-saber-blue border-saber-blue/40 hover:bg-saber-blue/10 shrink-0"
-                  onClick={aiTags} disabled={ai.loading}>
-                  {ai.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                  className="saber-border text-saber-blue border-saber-blue/40 hover:bg-saber-blue/10 shrink-0 mt-0.5"
+                  onClick={aiSummarize} disabled={ai.loading}>
+                  {ai.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
                 </Button>
               </div>
             </FormField>
 
-            {/* Content */}
-            <FormField id="content" label="What did you do today?" required
-              hint="Write in Markdown. Be honest — struggles count too.">
+            <FormField id="content" label="Content (Markdown)" required
+              hint="What did you build, learn, struggle with? Be honest.">
               <div className="space-y-2">
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm"
+                    className="saber-border text-saber-blue border-saber-blue/40 hover:bg-saber-blue/10 gap-1.5"
+                    onClick={aiGenerate} disabled={ai.loading}>
+                    {ai.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                    Generate
+                  </Button>
                   <Button type="button" variant="outline" size="sm"
                     className="saber-border text-saber-blue border-saber-blue/40 hover:bg-saber-blue/10 gap-1.5"
                     onClick={aiEnhance} disabled={ai.loading}>
                     {ai.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
-                    AI enhance
+                    Enhance
                   </Button>
                 </div>
-                <SaberTextarea
-                  value={formData.content}
+                <SaberTextarea value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  rows={16}
-                  placeholder={"## What I built\n\n- Implemented JWT refresh logic\n- Fixed the CORS issue on the API\n\n## What I learned\n\nTokens expire for a reason...\n\n## Struggles\n\nSpent 2 hours on a missing semicolon 🤦"}
-                />
+                  rows={18}
+                  placeholder={"## What I built\n\n- ...\n\n## What I learned\n\n...\n\n## Struggles\n\n..."} />
               </div>
             </FormField>
           </FormSection>
+
+          {/* ── Taxonomy ── */}
+          <FormSection title="Taxonomy">
+            <FormField id="tags" label="Tags" optional hint="Comma-separated.">
+              <div className="flex gap-2">
+                <SaberInput value={formData.tags}
+                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                  placeholder="react, auth, debugging, ctf" className="flex-1" />
+                <Button type="button" variant="outline" size="sm"
+                  className="saber-border text-saber-blue border-saber-blue/40 hover:bg-saber-blue/10 shrink-0"
+                  onClick={aiTags} disabled={ai.loading}>
+                  {ai.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Tag className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+            </FormField>
+          </FormSection>
+
+          {/* ── Publishing ── */}
+          <FormSection title="Publishing">
+            <div className="flex items-center gap-3 flex-wrap">
+              <button type="button"
+                onClick={() => setFormData((d) => ({ ...d, status: "published", isPublic: true }))}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md border text-xs uppercase tracking-[0.2em] font-mono transition-colors ${
+                  formData.status === "published" && formData.isPublic
+                    ? "border-saber-blue text-saber-blue bg-saber-blue/10"
+                    : "border-border/60 text-muted-foreground hover:border-foreground/40"
+                }`}>
+                <Globe className="h-3.5 w-3.5" /> Published
+              </button>
+              <button type="button"
+                onClick={() => setFormData((d) => ({ ...d, status: "draft" }))}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md border text-xs uppercase tracking-[0.2em] font-mono transition-colors ${
+                  formData.status === "draft"
+                    ? "border-amber-500/60 text-amber-400 bg-amber-500/10"
+                    : "border-border/60 text-muted-foreground hover:border-foreground/40"
+                }`}>
+                <FileEdit className="h-3.5 w-3.5" /> Draft
+              </button>
+              <button type="button"
+                onClick={() => setFormData((d) => ({ ...d, status: "published", isPublic: false }))}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md border text-xs uppercase tracking-[0.2em] font-mono transition-colors ${
+                  formData.status === "published" && !formData.isPublic
+                    ? "border-foreground/40 text-foreground bg-muted/40"
+                    : "border-border/60 text-muted-foreground hover:border-foreground/40"
+                }`}>
+                <EyeOff className="h-3.5 w-3.5" /> Private
+              </button>
+            </div>
+          </FormSection>
         </AdminFormShell>
 
-        {/* ── Log list ── */}
+        {/* ── Entry list ── */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-eyebrow-bright text-[10px] uppercase tracking-[0.32em]">Past entries</p>
-              <p className="text-sm text-muted-foreground">{logs.length} total</p>
+              <p className="text-eyebrow-bright text-[10px] uppercase tracking-[0.32em]">Saved entries</p>
+              <p className="text-sm text-muted-foreground">
+                {logs.length} total · {logs.filter((l) => l.status === "draft").length} drafts
+              </p>
             </div>
-            {editingId && (
-              <Button variant="ghost" size="sm" onClick={resetForm}>Cancel edit</Button>
-            )}
+            {editingId && <Button variant="ghost" size="sm" onClick={resetForm}>Cancel edit</Button>}
           </div>
 
           {logs.length === 0 ? (
-            <div className="saber-card p-6 text-center text-muted-foreground text-sm">
-              No entries yet. Start today!
-            </div>
+            <div className="saber-card p-6 text-center text-muted-foreground text-sm">No entries yet.</div>
           ) : (
             <div className="space-y-3">
               {logs.map((log) => {
                 const mood = MOOD_OPTIONS.find((m) => m.value === log.mood);
                 return (
                   <article key={log.id} className="saber-card p-4">
-                    <div className="flex items-start justify-between gap-2 mb-1">
+                    {log.thumbnailUrl && (
+                      <img src={log.thumbnailUrl} alt="" className="h-20 w-full object-cover rounded-md mb-3 border border-border/60" />
+                    )}
+                    <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <p className="text-[10px] font-mono text-muted-foreground">{formatDisplayDate(log.logDate)}</p>
                           <span className="text-xs">{mood?.emoji}</span>
-                          {!log.isPublic && (
-                            <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-amber-400 border border-amber-500/30 px-1 rounded">Private</span>
+                          {log.status === "draft" && (
+                            <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-amber-400 border border-amber-500/30 px-1 rounded">Draft</span>
+                          )}
+                          {!log.isPublic && log.status !== "draft" && (
+                            <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-muted-foreground border border-border/40 px-1 rounded">Private</span>
                           )}
                         </div>
                         <p className="text-sm font-semibold line-clamp-1">{log.title}</p>
@@ -310,7 +431,7 @@ const AdminDevLog = () => {
                         )}
                       </div>
                       <div className="flex gap-1 shrink-0">
-                        <Button type="button" variant="ghost" size="sm" onClick={() => handleEdit(log)}>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(log)}>
                           <Edit3 className="h-3.5 w-3.5" />
                         </Button>
                         <Button type="button" variant="ghost" size="sm"

@@ -1,6 +1,6 @@
 import { ReactNode, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Home, FileText, Sparkles, FolderGit2, GitCommitVertical, Award, LogOut, Swords, Menu, X, Mail, BarChart2, Rss, Settings, Trash2, BookOpen } from "lucide-react";
+import { LayoutDashboard, Home, FileText, Sparkles, FolderGit2, GitCommitVertical, Award, LogOut, Swords, Menu, X, BarChart2, Rss, Settings, Trash2, BookOpen } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const items = [
@@ -11,7 +11,6 @@ const items = [
   { to: "/admin/projects", label: "Projects", icon: FolderGit2 },
   { to: "/admin/timeline", label: "Timeline", icon: GitCommitVertical },
   { to: "/admin/certifications", label: "Certificates", icon: Award },
-  { to: "/admin/messages", label: "Messages", icon: Mail },
   { to: "/admin/newsletter", label: "Newsletter", icon: Rss },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart2 },
   { to: "/admin/devlog", label: "Dev Diary", icon: BookOpen },

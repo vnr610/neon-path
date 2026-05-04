@@ -1,88 +1,51 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { PageHeader } from "@/components/saber/PageHeader";
 import { SEO } from "@/components/saber/SEO";
 import { EmptyState } from "@/components/saber/EmptyState";
-import { BlogMarkdown } from "@/components/saber/BlogMarkdown";
-import { BookOpen, ChevronDown, ChevronUp, Tag, Calendar } from "lucide-react";
+import { BookOpen, ArrowRight, Search, Clock, X, Tag } from "lucide-react";
 import { loadDevLogs, type DevLog, type DevLogMood } from "@/lib/content";
 
-const MOOD_META: Record<DevLogMood, { emoji: string; label: string; color: string }> = {
-  focused:      { emoji: "🎯", label: "Focused",      color: "text-saber-blue" },
-  productive:   { emoji: "⚡", label: "Productive",   color: "text-green-400" },
-  learning:     { emoji: "📚", label: "Learning",     color: "text-amber-400" },
-  struggling:   { emoji: "🔥", label: "Struggling",   color: "text-orange-400" },
-  breakthrough: { emoji: "💡", label: "Breakthrough", color: "text-saber-purple" },
-  tired:        { emoji: "😴", label: "Tired",        color: "text-muted-foreground" },
+const MOOD_META: Record<DevLogMood, { emoji: string; label: string }> = {
+  focused:      { emoji: "🎯", label: "Focused" },
+  productive:   { emoji: "⚡", label: "Productive" },
+  learning:     { emoji: "📚", label: "Learning" },
+  struggling:   { emoji: "🔥", label: "Struggling" },
+  breakthrough: { emoji: "💡", label: "Breakthrough" },
+  tired:        { emoji: "😴", label: "Tired" },
 };
 
-function formatLogDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+function formatLogDate(d: string) {
+  return new Date(d + "T00:00:00").toLocaleDateString("en-US", {
+    weekday: "short", month: "short", day: "numeric", year: "numeric",
+  });
 }
 
-function LogEntry({ log }: { log: DevLog }) {
-  const [expanded, setExpanded] = useState(false);
-  const mood = MOOD_META[log.mood] ?? MOOD_META.focused;
-  const preview = log.content.split("\n").slice(0, 3).join("\n");
-  const hasMore = log.content.split("\n").length > 3;
-
-  return (
-    <article className="saber-card overflow-hidden">
-      {/* Header */}
-      <div className="p-6 pb-4">
-        <div className="flex items-start justify-between gap-4 mb-3">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
-            <Calendar className="h-3.5 w-3.5" />
-            <time dateTime={log.logDate}>{formatLogDate(log.logDate)}</time>
-          </div>
-          <span className={`text-sm ${mood.color} shrink-0`} title={mood.label}>
-            {mood.emoji} {mood.label}
-          </span>
-        </div>
-
-        <h2 className="font-display text-lg font-semibold mb-3">{log.title}</h2>
-
-        {log.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-4">
-            {log.tags.map((tag) => (
-              <span key={tag} className="flex items-center gap-1 rounded-full border border-border/60 px-2 py-0.5 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-                <Tag className="h-2.5 w-2.5" />{tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="px-6 pb-2">
-        <div className={`overflow-hidden transition-all duration-300 ${expanded ? "" : "max-h-40"}`}>
-          <BlogMarkdown>{expanded ? log.content : preview}</BlogMarkdown>
-        </div>
-      </div>
-
-      {/* Expand toggle */}
-      {hasMore && (
-        <button
-          onClick={() => setExpanded((v) => !v)}
-          className="w-full flex items-center justify-center gap-1.5 py-3 text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground border-t border-border/40 transition-colors"
-        >
-          {expanded ? <><ChevronUp className="h-3.5 w-3.5" />Show less</> : <><ChevronDown className="h-3.5 w-3.5" />Read more</>}
-        </button>
-      )}
-    </article>
-  );
+function estimateReadTime(content: string): number {
+  return Math.max(1, Math.ceil(content.split(/\s+/).length / 200));
 }
+
+function contentPreview(log: DevLog, maxLen = 140): string {
+  const base = log.excerpt?.trim() || log.content;
+  const text = base.replace(/[#*`\[\]]/g, "").replace(/\s+/g, " ").trim();
+  return text.length <= maxLen ? text : text.slice(0, maxLen) + "…";
+}
+
+const PAGE_SIZE = 6;
 
 const DevLogPage = () => {
   const [logs, setLogs] = useState<DevLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
-  const [activeMood, setActiveMood] = useState<DevLogMood | null>(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     loadDevLogs(true).then((data) => { setLogs(data); setLoading(false); });
   }, []);
+
+  useEffect(() => { setPage(1); }, [query, activeTag]);
 
   const allTags = useMemo(() => {
     const set = new Set<string>();
@@ -91,27 +54,22 @@ const DevLogPage = () => {
   }, [logs]);
 
   const filtered = useMemo(() => {
-    return logs.filter((l) => {
-      if (activeTag && !l.tags.includes(activeTag)) return false;
-      if (activeMood && l.mood !== activeMood) return false;
-      return true;
-    });
-  }, [logs, activeTag, activeMood]);
+    let result = logs;
+    if (activeTag) result = result.filter((l) => l.tags.includes(activeTag));
+    if (!query.trim()) return result;
+    const q = query.toLowerCase();
+    return result.filter((l) =>
+      l.title.toLowerCase().includes(q) ||
+      l.excerpt?.toLowerCase().includes(q) ||
+      l.tags.some((t) => t.toLowerCase().includes(q))
+    );
+  }, [logs, query, activeTag]);
 
-  // Group by month
-  const grouped = useMemo(() => {
-    const map = new Map<string, DevLog[]>();
-    for (const log of filtered) {
-      const key = log.logDate.slice(0, 7); // YYYY-MM
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(log);
-    }
-    return Array.from(map.entries()).map(([month, items]) => ({
-      month,
-      label: new Date(month + "-01").toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-      items,
-    }));
-  }, [filtered]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const entryHref = (log: DevLog) =>
+    log.slug ? `/devlog/${log.slug}` : `/devlog/${log.id}`;
 
   return (
     <SiteLayout>
@@ -120,35 +78,24 @@ const DevLogPage = () => {
         description="Daily logs of coding practice, learning, and progress on the path."
         path="/devlog"
       />
-      <div className="container py-16 max-w-3xl">
-        <PageHeader
-          title="Dev Diary"
-          subtitle="Daily logs — what I coded, learned, and practiced. Raw and honest."
-        />
+      <div className="container py-16 max-w-7xl">
+        <PageHeader title="Dev Diary" subtitle="Daily logs — what I coded, learned, and practiced. Raw and honest." />
 
-        {/* Filters */}
-        {!loading && logs.length > 0 && (
-          <div className="space-y-3 mb-8">
-            {/* Mood filter */}
-            <div className="flex flex-wrap gap-2">
-              {(Object.entries(MOOD_META) as [DevLogMood, typeof MOOD_META[DevLogMood]][]).map(([mood, meta]) => {
-                const count = logs.filter((l) => l.mood === mood).length;
-                if (count === 0) return null;
-                return (
-                  <button key={mood} onClick={() => setActiveMood(activeMood === mood ? null : mood)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-mono transition-colors ${
-                      activeMood === mood
-                        ? `border-current ${meta.color} bg-current/10`
-                        : "border-border/60 text-muted-foreground hover:border-foreground/40"
-                    }`}>
-                    {meta.emoji} {meta.label}
-                    <span className="opacity-50">({count})</span>
-                  </button>
-                );
-              })}
+        {/* Search */}
+        {logs.length > 0 && (
+          <div className="mb-6 space-y-3 animate-fade-up opacity-0" style={{ animationDelay: "0.05s" }}>
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
+              <input type="search" value={query} onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search entries…"
+                className="w-full rounded-md border border-border/60 bg-background/60 pl-9 pr-9 py-2.5 text-sm font-mono placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40 transition-colors" />
+              {query && (
+                <button onClick={() => setQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
-
-            {/* Tag filter */}
             {allTags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {allTags.map((tag) => (
@@ -167,34 +114,111 @@ const DevLogPage = () => {
         )}
 
         {loading ? (
-          <div className="space-y-4">
-            {[0, 1, 2].map((i) => <div key={i} className="saber-card h-40 animate-pulse bg-muted/20" />)}
+          <div className="grid gap-8 lg:grid-cols-2">
+            {[0, 1, 2, 3].map((i) => <div key={i} className="saber-card aspect-[3/2] animate-pulse bg-muted/20" />)}
           </div>
         ) : filtered.length === 0 ? (
-          <EmptyState
-            icon={BookOpen}
-            title="No diary entries yet"
-            description="Daily logs will appear here as they're written."
-            hint="Every day is worth documenting."
-            status="diary :: blank"
-          />
+          query || activeTag ? (
+            <div className="saber-card p-10 text-center">
+              <p className="text-muted-foreground text-sm">No entries match your filter.</p>
+              <button onClick={() => { setQuery(""); setActiveTag(null); }}
+                className="mt-3 text-xs text-saber-blue hover:underline">Clear filters</button>
+            </div>
+          ) : (
+            <EmptyState icon={BookOpen} title="No diary entries yet"
+              description="Daily logs will appear here as they're written."
+              hint="Every day is worth documenting." status="diary :: blank" />
+          )
         ) : (
-          <div className="space-y-10">
-            {grouped.map(({ month, label, items }) => (
-              <section key={month}>
-                <div className="flex items-center gap-3 mb-5">
-                  <span className="h-px flex-1 bg-border/40" />
-                  <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-muted-foreground/60 shrink-0">
-                    {label}
-                  </p>
-                  <span className="h-px flex-1 bg-border/40" />
-                </div>
-                <div className="space-y-4">
-                  {items.map((log) => <LogEntry key={log.id} log={log} />)}
-                </div>
-              </section>
-            ))}
-          </div>
+          <>
+            {(query || activeTag) && (
+              <p className="text-xs text-muted-foreground mb-4 font-mono">
+                {filtered.length} result{filtered.length !== 1 ? "s" : ""}
+              </p>
+            )}
+
+            <div className="grid gap-8 lg:grid-cols-2">
+              {paginated.map((log, i) => {
+                const mood = MOOD_META[log.mood];
+                return (
+                  <article key={log.id}
+                    className="saber-card overflow-hidden group flex flex-col animate-fade-up opacity-0 hover:-translate-y-1 transition-transform duration-300"
+                    style={{ animationDelay: `${0.1 + i * 0.07}s` }}>
+                    {log.thumbnailUrl ? (
+                      <Link to={entryHref(log)} className="block">
+                        <img src={log.thumbnailUrl} alt=""
+                          className="aspect-[21/9] w-full object-cover border-b border-border/50 group-hover:scale-105 transition-transform duration-500" />
+                      </Link>
+                    ) : (
+                      <div className="aspect-[21/9] w-full border-b border-border/50 bg-muted/30 flex items-center justify-center">
+                        <span className="text-3xl opacity-40">{mood.emoji}</span>
+                      </div>
+                    )}
+
+                    <div className="p-5 flex-1 flex flex-col">
+                      <div className="flex flex-wrap items-center justify-between gap-3 mb-3 text-xs text-muted-foreground">
+                        <time dateTime={log.logDate}>{formatLogDate(log.logDate)}</time>
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground/60">
+                            <Clock className="h-3 w-3" />
+                            {estimateReadTime(log.content)} min read
+                          </span>
+                          <span title={mood.label}>{mood.emoji}</span>
+                        </div>
+                      </div>
+
+                      <h2 className="text-xl font-semibold mb-2">
+                        <Link to={entryHref(log)}
+                          className="hover:text-saber-blue transition-colors inline-flex items-center gap-2">
+                          {log.title}
+                          <ArrowRight className="h-4 w-4 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                        </Link>
+                      </h2>
+
+                      <p className="text-muted-foreground text-sm flex-1">{contentPreview(log)}</p>
+
+                      {log.tags.length > 0 && (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {log.tags.slice(0, 4).map((tag) => (
+                            <button key={tag} onClick={() => setActiveTag(tag)}
+                              className="rounded-full border border-border px-3 py-1 text-xs uppercase tracking-[0.3em] text-muted-foreground hover:border-foreground/40 hover:text-foreground transition-colors">
+                              {tag}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="mt-5">
+                        <Link to={entryHref(log)}
+                          className="text-sm uppercase tracking-[0.2em] text-saber-blue hover:underline inline-flex items-center gap-2">
+                          Read entry <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-10">
+                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+                  className="px-4 py-2 rounded-md border border-border/60 text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground hover:border-foreground/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                  ← Prev
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button key={p} onClick={() => setPage(p)}
+                    className={`h-8 w-8 rounded-md border text-xs font-mono transition-colors ${
+                      p === page ? "border-foreground/60 text-foreground bg-foreground/10" : "border-border/60 text-muted-foreground hover:border-foreground/40 hover:text-foreground"
+                    }`}>{p}</button>
+                ))}
+                <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                  className="px-4 py-2 rounded-md border border-border/60 text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground hover:border-foreground/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                  Next →
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </SiteLayout>

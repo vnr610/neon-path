@@ -1191,12 +1191,18 @@ export type DevLogMood = "focused" | "productive" | "learning" | "struggling" | 
 
 export type DevLog = {
   id: string;
-  logDate: string;       // YYYY-MM-DD
+  logDate: string;
   title: string;
+  slug?: string;
+  excerpt?: string;
   content: string;
+  contentFormat: "markdown" | "html";
+  thumbnailUrl?: string;
+  author?: string;
   tags: string[];
   mood: DevLogMood;
   isPublic: boolean;
+  status: "draft" | "published";
   createdAt: string;
   updatedAt: string;
 };
@@ -1205,20 +1211,32 @@ const mapDevLog = (row: any): DevLog => ({
   id: row.id,
   logDate: row.log_date,
   title: row.title,
+  slug: row.slug || undefined,
+  excerpt: row.excerpt || undefined,
   content: row.content,
+  contentFormat: row.content_format === "html" ? "html" : "markdown",
+  thumbnailUrl: row.thumbnail_url || undefined,
+  author: row.author || undefined,
   tags: row.tags || [],
   mood: row.mood || "focused",
   isPublic: row.is_public ?? true,
+  status: row.status === "draft" ? "draft" : "published",
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
 
 export const loadDevLogs = async (publicOnly = true): Promise<DevLog[]> => {
-  let q = supabase.from("dev_logs").select("*").order("log_date", { ascending: false });
-  if (publicOnly) q = q.eq("is_public", true);
+  let q = supabase.from("dev_logs").select("*").order("log_date", { ascending: false }).order("created_at", { ascending: false });
+  if (publicOnly) q = q.eq("is_public", true).eq("status", "published");
   const { data, error } = await q;
   if (error) { console.error("Error loading dev logs:", error); return []; }
   return (data || []).map(mapDevLog);
+};
+
+export const loadDevLogBySlug = async (slug: string): Promise<DevLog | null> => {
+  const { data, error } = await supabase.from("dev_logs").select("*").eq("slug", slug).maybeSingle();
+  if (error || !data) return null;
+  return mapDevLog(data);
 };
 
 export const loadDevLogByDate = async (date: string): Promise<DevLog | null> => {
@@ -1227,24 +1245,55 @@ export const loadDevLogByDate = async (date: string): Promise<DevLog | null> => 
   return mapDevLog(data);
 };
 
-export const upsertDevLog = async (log: Omit<DevLog, "id" | "createdAt" | "updatedAt">): Promise<DevLog | null> => {
+export const addDevLog = async (log: Omit<DevLog, "id" | "createdAt" | "updatedAt">): Promise<DevLog | null> => {
   const { data, error } = await supabase
     .from("dev_logs")
-    .upsert({
+    .insert({
       log_date: log.logDate,
       title: log.title,
+      slug: log.slug || null,
+      excerpt: log.excerpt || null,
       content: log.content,
+      content_format: log.contentFormat,
+      thumbnail_url: log.thumbnailUrl || null,
+      author: log.author || null,
       tags: log.tags,
       mood: log.mood,
       is_public: log.isPublic,
+      status: log.status ?? "published",
+    })
+    .select().single();
+  if (error) { console.error("Error adding dev log:", error); return null; }
+  return mapDevLog(data);
+};
+
+export const updateDevLog = async (id: string, updates: Partial<Omit<DevLog, "id" | "createdAt">>): Promise<DevLog | null> => {
+  const { data, error } = await supabase
+    .from("dev_logs")
+    .update({
+      ...(updates.logDate !== undefined && { log_date: updates.logDate }),
+      ...(updates.title !== undefined && { title: updates.title }),
+      ...(updates.slug !== undefined && { slug: updates.slug || null }),
+      ...(updates.excerpt !== undefined && { excerpt: updates.excerpt || null }),
+      ...(updates.content !== undefined && { content: updates.content }),
+      ...(updates.contentFormat !== undefined && { content_format: updates.contentFormat }),
+      ...(updates.thumbnailUrl !== undefined && { thumbnail_url: updates.thumbnailUrl || null }),
+      ...(updates.author !== undefined && { author: updates.author || null }),
+      ...(updates.tags !== undefined && { tags: updates.tags }),
+      ...(updates.mood !== undefined && { mood: updates.mood }),
+      ...(updates.isPublic !== undefined && { is_public: updates.isPublic }),
+      ...(updates.status !== undefined && { status: updates.status }),
       updated_at: new Date().toISOString(),
-    }, { onConflict: "log_date" })
-    .select()
-    .single();
-  if (error) { console.error("Error upserting dev log:", error); return null; }
+    })
+    .eq("id", id)
+    .select().single();
+  if (error) { console.error("Error updating dev log:", error); return null; }
   return mapDevLog(data);
 };
 
 export const deleteDevLog = async (id: string): Promise<void> => {
   await supabase.from("dev_logs").delete().eq("id", id);
 };
+
+export const uploadDevLogThumbnail = async (file: File): Promise<string | null> =>
+  uploadBlogMedia(file, "devlog-thumbnails");

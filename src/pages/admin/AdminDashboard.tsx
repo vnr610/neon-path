@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { FileText, Sparkles, FolderGit2, GitCommitVertical, Award, ArrowUpRight, Mail, BarChart2 } from "lucide-react";
+import { FileText, Sparkles, FolderGit2, GitCommitVertical, Award, ArrowUpRight, BarChart2, BookOpen } from "lucide-react";
 import { useAdminContentCounts } from "@/hooks/useAdminContentCounts";
 import { getAdminGreeting } from "@/lib/adminGreeting";
 import type { AdminContentCounts } from "@/lib/content";
@@ -89,20 +89,6 @@ const AdminDashboard = () => {
           );
         })}
 
-        {/* Messages quick link */}
-        <Link to="/admin/messages" className="saber-card p-6 group flex flex-col gap-6">
-          <div className="flex items-start justify-between">
-            <div className="h-10 w-10 rounded-md saber-border flex items-center justify-center group-hover:shadow-glow-blue transition-shadow">
-              <Mail className="h-4 w-4 text-saber-blue" />
-            </div>
-            <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-saber-blue transition-colors" />
-          </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">Messages</p>
-            <p className="text-xs text-muted-foreground mt-1">Contact inbox</p>
-          </div>
-        </Link>
-
         {/* Analytics quick link */}
         <Link to="/admin/analytics" className="saber-card p-6 group flex flex-col gap-6">
           <div className="flex items-start justify-between">
@@ -114,6 +100,20 @@ const AdminDashboard = () => {
           <div>
             <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">Analytics</p>
             <p className="text-xs text-muted-foreground mt-1">Page view stats</p>
+          </div>
+        </Link>
+
+        {/* Dev Diary quick link */}
+        <Link to="/admin/devlog" className="saber-card p-6 group flex flex-col gap-6">
+          <div className="flex items-start justify-between">
+            <div className="h-10 w-10 rounded-md saber-border flex items-center justify-center group-hover:shadow-glow-blue transition-shadow">
+              <BookOpen className="h-4 w-4 text-saber-blue" />
+            </div>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-saber-blue transition-colors" />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">Dev Diary</p>
+            <p className="text-xs text-muted-foreground mt-1">Daily logs</p>
           </div>
         </Link>
       </div>

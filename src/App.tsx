@@ -34,13 +34,13 @@ import AdminProjects from "./pages/admin/AdminProjects";
 import AdminTimeline from "./pages/admin/AdminTimeline";
 import AdminCertifications from "./pages/admin/AdminCertifications";
 import AdminHome from "./pages/admin/AdminHome";
-import AdminMessages from "./pages/admin/AdminMessages";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminNewsletter from "./pages/admin/AdminNewsletter";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminRecycleBin from "./pages/admin/AdminRecycleBin";
 import AdminDevLog from "./pages/admin/AdminDevLog";
 import DevLogPage from "./pages/DevLog";
+import DevLogPost from "./pages/DevLogPost";
 
 const queryClient = new QueryClient();
 
@@ -77,13 +77,13 @@ function AppRoutes() {
         <Route path="/admin/projects" element={<RequireAdmin><AdminProjects /></RequireAdmin>} />
         <Route path="/admin/timeline" element={<RequireAdmin><AdminTimeline /></RequireAdmin>} />
         <Route path="/admin/certifications" element={<RequireAdmin><AdminCertifications /></RequireAdmin>} />
-        <Route path="/admin/messages" element={<RequireAdmin><AdminMessages /></RequireAdmin>} />
         <Route path="/admin/analytics" element={<RequireAdmin><AdminAnalytics /></RequireAdmin>} />
         <Route path="/admin/newsletter" element={<RequireAdmin><AdminNewsletter /></RequireAdmin>} />
         <Route path="/admin/settings" element={<RequireAdmin><AdminSettings /></RequireAdmin>} />
         <Route path="/admin/recycle-bin" element={<RequireAdmin><AdminRecycleBin /></RequireAdmin>} />
         <Route path="/admin/devlog" element={<RequireAdmin><AdminDevLog /></RequireAdmin>} />
         <Route path="/devlog" element={<DevLogPage />} />
+        <Route path="/devlog/:slug" element={<DevLogPost />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

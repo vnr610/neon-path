@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { Menu, Search, X, Swords, Terminal, ShieldAlert, LayoutGrid, FolderGit2, GitCommitVertical, Award } from "lucide-react";
+import { Menu, Search, X, Swords, Terminal, ShieldAlert, LayoutGrid, FolderGit2, GitCommitVertical, Award, BookOpen, BookMarked } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCommandPalette } from "@/components/saber/CommandPalette";
 
@@ -9,6 +9,7 @@ const primaryLinks = [
   { to: "/about", label: "About" },
   { to: "/skills", label: "Skills" },
   { to: "/writeups", label: "Writeups" },
+  { to: "/devlog", label: "Dev Diary" },
   { to: "/contact", label: "Contact" },
 ];
 
@@ -16,6 +17,7 @@ const moreLinks = [
   { to: "/projects", label: "Projects", icon: FolderGit2 },
   { to: "/timeline", label: "Timeline", icon: GitCommitVertical },
   { to: "/certifications", label: "Certifications", icon: Award },
+  { to: "/guestbook", label: "Guestbook", icon: BookMarked },
 ];
 
 const allLinks = [...primaryLinks, ...moreLinks];
