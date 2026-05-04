@@ -15,6 +15,10 @@ export type BlogPost = {
   createdAt: string;
   /** Display name of the author. Falls back to site owner name if blank. */
   author?: string;
+  /** `draft` posts are hidden from public pages. Default: `published`. */
+  status: "draft" | "published";
+  /** When set on a draft, auto-publishes at this UTC time. */
+  publishAt?: string | null;
 };
 
 export type BlogNeighbor = { slug: string; title: string };
@@ -30,6 +34,8 @@ const mapBlogFromDb = (row: any): BlogPost => ({
   tags: row.tags || [],
   createdAt: row.created_at,
   author: row.author || undefined,
+  status: row.status === "draft" ? "draft" : "published",
+  publishAt: row.publish_at || null,
 });
 
 /** Plain-text preview for list cards (strips HTML from Word imports). */
@@ -65,6 +71,14 @@ export type Project = {
   featuredOnHome?: boolean;
   /** Display order on the home grid (1–3). */
   homeSlot?: number | null;
+  /** URL-friendly slug for the project detail page. */
+  slug?: string;
+  /** Extended description / case study content (markdown). */
+  longDesc?: string;
+  /** Challenges faced and how they were solved (markdown). */
+  challenges?: string;
+  /** Array of screenshot URLs. */
+  screenshots?: string[];
 };
 
 export type SiteHomeSettings = {
@@ -92,6 +106,10 @@ const mapProjectFromDb = (row: any): Project => ({
   createdAt: row.created_at,
   featuredOnHome: row.featured_on_home ?? false,
   homeSlot: row.home_slot ?? null,
+  slug: row.slug || undefined,
+  longDesc: row.long_desc || undefined,
+  challenges: row.challenges || undefined,
+  screenshots: row.screenshots || [],
 });
 
 export type TimelineEntry = {
@@ -159,14 +177,31 @@ export const formatDate = (value: string) => {
 };
 
 // BLOG POSTS
+/** Public: only returns published posts (or scheduled posts whose time has passed). */
 export const loadBlogPosts = async (): Promise<BlogPost[]> => {
+  const { data, error } = await supabase
+    .from("blog_posts")
+    .select("*")
+    .eq("status", "published")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error loading blog posts:", error);
+    return [];
+  }
+
+  return (data || []).map(mapBlogFromDb);
+};
+
+/** Admin: returns ALL posts including drafts, sorted newest first. */
+export const loadAllBlogPosts = async (): Promise<BlogPost[]> => {
   const { data, error } = await supabase
     .from("blog_posts")
     .select("*")
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Error loading blog posts:", error);
+    console.error("Error loading all blog posts:", error);
     return [];
   }
 
@@ -207,6 +242,8 @@ export const addBlogPost = async (post: Omit<BlogPost, "id" | "createdAt">) => {
       thumbnail_url: post.thumbnailUrl || null,
       tags: post.tags,
       author: post.author || null,
+      status: post.status ?? "published",
+      publish_at: post.publishAt || null,
     })
     .select()
     .single();
@@ -231,6 +268,8 @@ export const updateBlogPost = async (id: string, updates: Partial<Omit<BlogPost,
       ...(updates.thumbnailUrl !== undefined && { thumbnail_url: updates.thumbnailUrl || null }),
       ...(updates.tags !== undefined && { tags: updates.tags }),
       ...(updates.author !== undefined && { author: updates.author || null }),
+      ...(updates.status !== undefined && { status: updates.status }),
+      ...(updates.publishAt !== undefined && { publish_at: updates.publishAt || null }),
     })
     .eq("id", id)
     .select()
@@ -251,12 +290,48 @@ export const deleteBlogPost = async (id: string) => {
   }
 };
 
+export const deleteBlogPostsBulk = async (ids: string[]) => {
+  if (!ids.length) return;
+  const { error } = await supabase.from("blog_posts").delete().in("id", ids);
+  if (error) console.error("Error bulk deleting blog posts:", error);
+};
+
+/** Convert any image File to WebP using Canvas API. Falls back to original if WebP not supported. */
+async function toWebP(file: File, quality = 0.85): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(file); return; }
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { resolve(file); return; }
+          const baseName = file.name.replace(/\.[^.]+$/, "");
+          resolve(new File([blob], `${baseName}.webp`, { type: "image/webp" }));
+        },
+        "image/webp",
+        quality,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
 export const uploadBlogMedia = async (file: File, folder = "blog-content"): Promise<string | null> => {
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const key = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const { error } = await supabase.storage.from("blog-media").upload(key, file, {
-    cacheControl: "3600",
+  // Convert to WebP for better compression and load times
+  const webpFile = file.type.startsWith("image/") ? await toWebP(file) : file;
+  const key = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
+  const { error } = await supabase.storage.from("blog-media").upload(key, webpFile, {
+    cacheControl: "31536000", // 1 year — WebP files are content-addressed
     upsert: false,
+    contentType: "image/webp",
   });
   if (error) {
     console.error("Error uploading blog media:", error);
@@ -365,6 +440,16 @@ export const loadProjects = async (): Promise<Project[]> => {
   }
 
   return (data || []).map(mapProjectFromDb);
+};
+
+export const loadProjectBySlug = async (slug: string): Promise<Project | null> => {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapProjectFromDb(data);
 };
 
 /** Featured rows for the landing grid, or the three newest projects if none are starred. */
@@ -995,47 +1080,4 @@ export const loadNewsletterSubscriberCount = async (): Promise<number> => {
     .select("id", { count: "exact", head: true });
   if (error) return 0;
   return count ?? 0;
-};
-
-// ── BLOG COMMENTS ─────────────────────────────────────────────────────────────
-
-export type BlogComment = {
-  id: string;
-  postSlug: string;
-  authorName: string;
-  body: string;
-  createdAt: string;
-};
-
-export const loadLatestComments = async (limit = 8): Promise<BlogComment[]> => {
-  const { data, error } = await supabase
-    .from("blog_comments")
-    .select("id, post_slug, author_name, body, created_at")
-    .eq("approved", true)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) { console.error("Error loading comments:", error); return []; }
-  return (data || []).map((row: any) => ({
-    id: row.id,
-    postSlug: row.post_slug,
-    authorName: row.author_name,
-    body: row.body,
-    createdAt: row.created_at,
-  }));
-};
-
-export const addBlogComment = async (
-  postSlug: string,
-  authorName: string,
-  body: string,
-  authorEmail?: string,
-): Promise<boolean> => {
-  const { error } = await supabase.from("blog_comments").insert({
-    post_slug: postSlug,
-    author_name: authorName.trim(),
-    body: body.trim(),
-    author_email: authorEmail?.trim() || null,
-  });
-  if (error) { console.error("Error adding comment:", error); return false; }
-  return true;
 };

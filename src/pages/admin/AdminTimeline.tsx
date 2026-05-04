@@ -72,8 +72,12 @@ async function buildEntries(log: (m: string) => void): Promise<ScannedEntry[]> {
   // GitHub
   if (home.githubUsername && (achievements.githubPushes30d ?? 0) > 0) {
     const p = achievements.githubPushes30d!;
+    // Use start of the 30-day window as the date — stable across re-scans within the same month
+    const windowStart = new Date();
+    windowStart.setDate(windowStart.getDate() - 30);
+    windowStart.setHours(0, 0, 0, 0);
     entries.push({
-      date: new Date().toISOString(),
+      date: windowStart.toISOString(),
       realm: "Full Stack",
       title: `${p} GitHub push event${p > 1 ? "s" : ""} in the last 30 days`,
       desc: `Active coding streak on @${home.githubUsername.replace(/^@/, "")}`,
@@ -83,8 +87,12 @@ async function buildEntries(log: (m: string) => void): Promise<ScannedEntry[]> {
 
   // LeetCode
   if ((achievements.leetcodeSolved ?? 0) > 0) {
+    // Use start of current month — count changes slowly, re-scans stay stable
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
     entries.push({
-      date: new Date().toISOString(),
+      date: monthStart.toISOString(),
       realm: "Full Stack",
       title: `${achievements.leetcodeSolved} LeetCode problem${achievements.leetcodeSolved === 1 ? "" : "s"} solved`,
       desc: "Algorithm and data structure practice on LeetCode",
@@ -92,11 +100,14 @@ async function buildEntries(log: (m: string) => void): Promise<ScannedEntry[]> {
     log(`  LeetCode: ${achievements.leetcodeSolved} solved`);
   }
 
-  // HackerOne
-  if (home.hackeroneUsername && achievements.hackeroneReputation !== null) {
-    const rep = achievements.hackeroneReputation ?? 0;
+  // HackerOne — only show if there's actual reputation
+  if (home.hackeroneUsername && (achievements.hackeroneReputation ?? 0) > 0) {
+    const rep = achievements.hackeroneReputation!;
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
     entries.push({
-      date: new Date().toISOString(),
+      date: monthStart.toISOString(),
       realm: "Cybersecurity",
       title: `HackerOne reputation: ${rep} point${rep !== 1 ? "s" : ""}`,
       desc: `Bug bounty activity on HackerOne (@${home.hackeroneUsername.replace(/^@/, "")})`,
@@ -104,15 +115,24 @@ async function buildEntries(log: (m: string) => void): Promise<ScannedEntry[]> {
     log(`  HackerOne: ${rep} rep`);
   }
 
-  // HTB
+  // HTB — only show if rank is above Noob
   if (achievements.hacktheboxRank) {
-    entries.push({
-      date: new Date().toISOString(),
-      realm: "Cybersecurity",
-      title: `Hack The Box rank: ${achievements.hacktheboxRank}`,
-      desc: "Current standing on the HTB platform",
-    });
-    log(`  HTB: ${achievements.hacktheboxRank}`);
+    const rank = achievements.hacktheboxRank.toLowerCase();
+    const isNoob = rank === "noob" || rank === "script kiddie";
+    if (!isNoob) {
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      entries.push({
+        date: monthStart.toISOString(),
+        realm: "Cybersecurity",
+        title: `Hack The Box rank: ${achievements.hacktheboxRank}`,
+        desc: "Current standing on the HTB platform",
+      });
+      log(`  HTB: ${achievements.hacktheboxRank}`);
+    } else {
+      log(`  HTB: ${achievements.hacktheboxRank} (skipped — rank too low)`);
+    }
   }
 
   // Notable skills (knight+)

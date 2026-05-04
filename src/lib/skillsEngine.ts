@@ -365,12 +365,12 @@ export async function deriveSkills(sources: ScanSources): Promise<DerivedSkill[]
   }
 
   // ── 6. HackerOne ──────────────────────────────────────────────────────────
-  // Benchmark: 500 rep = ~55pts (master). 0 rep = 8pts (account exists = initiate).
-  // Formula: 8 + sqrt(rep) * 2.1, capped at 55.
+  // Benchmark: 500 rep = ~55pts (master). 0 rep = nothing — account alone proves nothing.
+  // Formula: sqrt(rep) * 2.1, capped at 55. Requires actual reputation to score.
   const h1Rep = sources.achievements.hackeroneReputation;
-  if (h1Rep !== null) {
-    const repPts = Math.min(8 + Math.round(Math.sqrt(Math.max(h1Rep, 0)) * 2.1), 55);
-    const webPts = Math.min(8 + Math.round(Math.sqrt(Math.max(h1Rep, 0)) * 1.4), 40);
+  if (h1Rep !== null && h1Rep > 0) {
+    const repPts = Math.min(Math.round(Math.sqrt(h1Rep) * 2.1), 55);
+    const webPts = Math.min(Math.round(Math.sqrt(h1Rep) * 1.4), 40);
     addPoints(scores, "bug-bounty", "Bug Bounty", "cyber", repPts,
       `HackerOne: ${h1Rep} reputation`);
     addPoints(scores, "web-security", "Web Security", "cyber", webPts,
@@ -378,27 +378,28 @@ export async function deriveSkills(sources: ScanSources): Promise<DerivedSkill[]
   }
 
   // ── 7. Hack The Box ───────────────────────────────────────────────────────
-  // Absolute rank ladder — each rank maps to a fixed score ceiling.
+  // Absolute rank ladder — Noob is excluded (no real skill proven yet).
+  // Each rank above Noob maps to a fixed score.
   const htbRank = sources.achievements.hacktheboxRank?.toLowerCase().replace(/\s+/g, "_") ?? null;
   if (htbRank) {
     const HTB_RANK_POINTS: Record<string, number> = {
-      noob: 8,
+      // noob: intentionally omitted — having an account proves nothing
       script_kiddie: 16,
       hacker: 28,
       pro_hacker: 40,
       elite_hacker: 52,
       guru: 65,
-      omniscient: 78,   // still capped at MAX_PROGRESS — omniscient ≠ perfect
+      omniscient: 78,
     };
-    const htbPts = HTB_RANK_POINTS[htbRank] ?? 10;
-    const rankLabel = sources.achievements.hacktheboxRank ?? htbRank;
-
-    addPoints(scores, "htb", "Hack The Box", "cyber", htbPts, `HTB rank: ${rankLabel}`);
-    // Pentest and CTF get a fraction of HTB score
-    addPoints(scores, "pentest", "Penetration Testing", "cyber",
-      Math.round(htbPts * 0.75), `HTB rank: ${rankLabel}`);
-    addPoints(scores, "ctf", "CTF", "cyber",
-      Math.round(htbPts * 0.65), `HTB rank: ${rankLabel}`);
+    const htbPts = HTB_RANK_POINTS[htbRank] ?? 0;
+    if (htbPts > 0) {
+      const rankLabel = sources.achievements.hacktheboxRank ?? htbRank;
+      addPoints(scores, "htb", "Hack The Box", "cyber", htbPts, `HTB rank: ${rankLabel}`);
+      addPoints(scores, "pentest", "Penetration Testing", "cyber",
+        Math.round(htbPts * 0.75), `HTB rank: ${rankLabel}`);
+      addPoints(scores, "ctf", "CTF", "cyber",
+        Math.round(htbPts * 0.65), `HTB rank: ${rankLabel}`);
+    }
   }
 
   // ── Build final list ──────────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { PageHeader } from "@/components/saber/PageHeader";
 import { EmptyState } from "@/components/saber/EmptyState";
@@ -164,14 +165,21 @@ const Projects = () => {
                       })}
                     </div>
                     <div className="mt-6 flex flex-wrap gap-3 text-sm">
+                      {project.slug && (
+                        <Link to={`/projects/${project.slug}`}
+                          className="text-saber-blue hover:underline inline-flex items-center gap-1 group/link font-mono text-xs uppercase tracking-[0.2em]">
+                          Case study
+                          <ArrowRight className="h-3 w-3 opacity-0 -translate-x-1 group-hover/link:opacity-100 group-hover/link:translate-x-0 transition-all" />
+                        </Link>
+                      )}
                       {project.repo && (
-                        <a href={project.repo} target="_blank" rel="noreferrer" className="text-saber-blue hover:underline inline-flex items-center gap-1 group/link">
+                        <a href={project.repo} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground hover:underline inline-flex items-center gap-1 group/link font-mono text-xs uppercase tracking-[0.2em]">
                           Repository
                           <ArrowRight className="h-3 w-3 opacity-0 -translate-x-1 group-hover/link:opacity-100 group-hover/link:translate-x-0 transition-all" />
                         </a>
                       )}
                       {project.live && (
-                        <a href={project.live} target="_blank" rel="noreferrer" className="text-saber-purple hover:underline inline-flex items-center gap-1 group/link">
+                        <a href={project.live} target="_blank" rel="noreferrer" className="text-saber-purple hover:underline inline-flex items-center gap-1 group/link font-mono text-xs uppercase tracking-[0.2em]">
                           Live Demo
                           <ArrowRight className="h-3 w-3 opacity-0 -translate-x-1 group-hover/link:opacity-100 group-hover/link:translate-x-0 transition-all" />
                         </a>

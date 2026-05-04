@@ -7,25 +7,25 @@ create table if not exists public.newsletter_subscribers (
 
 alter table public.newsletter_subscribers enable row level security;
 
-drop policy if exists "Anyone can subscribe" on public.newsletter_subscribers;
+-- Anyone can subscribe (insert their own email)
 create policy "Anyone can subscribe"
   on public.newsletter_subscribers for insert
   with check (true);
 
-drop policy if exists "Only admins can read subscribers" on public.newsletter_subscribers;
+-- Only admins can read subscriber list
 create policy "Only admins can read subscribers"
   on public.newsletter_subscribers for select
   to authenticated
   using (public.has_role(auth.uid(), 'admin'));
 
-drop policy if exists "Only admins can update subscribers" on public.newsletter_subscribers;
+-- Only admins can update (confirm/unsubscribe)
 create policy "Only admins can update subscribers"
   on public.newsletter_subscribers for update
   to authenticated
   using (public.has_role(auth.uid(), 'admin'))
   with check (public.has_role(auth.uid(), 'admin'));
 
-drop policy if exists "Only admins can delete subscribers" on public.newsletter_subscribers;
+-- Only admins can delete
 create policy "Only admins can delete subscribers"
   on public.newsletter_subscribers for delete
   to authenticated

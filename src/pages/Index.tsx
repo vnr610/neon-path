@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Target, Activity, FolderGit2, Terminal, Shield, Code2, BookOpen, Clock, WifiOff, Eye, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, Target, Activity, FolderGit2, Terminal, Shield, Code2, BookOpen, Clock, WifiOff, Eye } from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { EmptyState } from "@/components/saber/EmptyState";
 import { SectionHeader } from "@/components/saber/SectionHeader";
@@ -16,7 +16,6 @@ import {
   loadTimelineEntries,
   loadBlogPosts,
   loadTotalPageViews,
-  loadLatestComments,
   formatDate,
   blogContentPreview,
   estimateReadTime,
@@ -24,7 +23,6 @@ import {
   type Skill,
   type TimelineEntry,
   type BlogPost,
-  type BlogComment,
 } from "@/lib/content";
 
 const slotGlow = ["blue", "purple", "blue"] as const;
@@ -34,7 +32,6 @@ type HomeState = {
   milestones: TimelineEntry[];
   skills: Skill[];
   posts: BlogPost[];
-  comments: BlogComment[];
   offline: boolean;
   totalViews: number;
 };
@@ -42,20 +39,18 @@ type HomeState = {
 const Index = () => {
   const [home, setHome] = useState<HomeState | null>(null);
   const heroRef = useRef<HTMLElement>(null);
-  const carouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
     const isOffline = !navigator.onLine;
     (async () => {
       try {
-        const [featured, timeline, skills, posts, totalViews, comments] = await Promise.all([
+        const [featured, timeline, skills, posts, totalViews] = await Promise.all([
           loadFeaturedProjectsForHome(),
           loadTimelineEntries(),
           loadSkills(),
           loadBlogPosts(),
           loadTotalPageViews(),
-          loadLatestComments(8),
         ]);
         if (cancelled) return;
         setHome({
@@ -63,13 +58,12 @@ const Index = () => {
           milestones: timeline.slice(0, 3),
           skills,
           posts: posts.slice(0, 3),
-          comments,
           offline: isOffline,
           totalViews,
         });
       } catch {
         if (cancelled) return;
-        setHome({ featured: [], milestones: [], skills: [], posts: [], comments: [], offline: true, totalViews: 0 });
+        setHome({ featured: [], milestones: [], skills: [], posts: [], offline: true, totalViews: 0 });
       }
     })();
     return () => { cancelled = true; };
@@ -239,109 +233,6 @@ const Index = () => {
               </Button>
             </div>
           </ScrollReveal>
-        )}
-      </section>
-
-      {/* ── LATEST COMMENTS ── */}
-      <section className="py-20 overflow-hidden">
-        <div className="container">
-          <ScrollReveal animation="fade-up">
-            <div className="flex items-center justify-between mb-8">
-              <SectionHeader
-                eyebrow="Community"
-                title="Latest comments"
-                description="What readers are saying about the writeups."
-              />
-              {home && home.comments.length > 1 && (
-                <div className="hidden sm:flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => carouselRef.current?.scrollBy({ left: -320, behavior: "smooth" })}
-                    className="h-8 w-8 rounded-full saber-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:shadow-glow-blue transition-all"
-                    aria-label="Scroll left"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => carouselRef.current?.scrollBy({ left: 320, behavior: "smooth" })}
-                    className="h-8 w-8 rounded-full saber-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:shadow-glow-blue transition-all"
-                    aria-label="Scroll right"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-          </ScrollReveal>
-        </div>
-
-        {!home ? (
-          <div className="container">
-            <div className="flex gap-4 overflow-hidden">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="saber-card shrink-0 w-72 sm:w-80 h-44 animate-pulse bg-muted/20" />
-              ))}
-            </div>
-          </div>
-        ) : home.comments.length === 0 ? (
-          <div className="container">
-            <ScrollReveal animation="scale-in" delay={100}>
-              <EmptyState
-                icon={MessageSquare}
-                title="No comments yet"
-                description="Be the first to leave a comment on a writeup."
-                hint="Every conversation starts with one voice."
-                status="comments :: awaiting first reply"
-                action={
-                  <Button asChild variant="outline" className="saber-border">
-                    <Link to="/writeups">Read writeups <ArrowRight className="ml-2 h-4 w-4" /></Link>
-                  </Button>
-                }
-              />
-            </ScrollReveal>
-          </div>
-        ) : (
-          <>
-            {/* Scrollable carousel — full bleed */}
-            <div
-              ref={carouselRef}
-              className="flex gap-4 overflow-x-auto px-4 sm:px-8 pb-2 snap-x snap-mandatory"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-            >
-              <div className="shrink-0 w-[max(0px,calc((100vw-1280px)/2))]" />
-              {home.comments.map((comment, i) => (
-                <div
-                  key={comment.id}
-                  className="saber-card p-5 shrink-0 w-72 sm:w-80 snap-start flex flex-col gap-3 animate-fade-up opacity-0"
-                  style={{ animationDelay: `${i * 0.06}s` }}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-8 w-8 rounded-full saber-border flex items-center justify-center shrink-0 bg-muted/30">
-                        <span className="text-xs font-semibold text-foreground/70 uppercase">
-                          {comment.authorName.charAt(0)}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold leading-tight">{comment.authorName}</p>
-                        <p className="text-[10px] text-muted-foreground font-mono">{formatDate(comment.createdAt)}</p>
-                      </div>
-                    </div>
-                    <MessageSquare className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0 mt-0.5" />
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4 flex-1">
-                    {comment.body}
-                  </p>
-                  <Link
-                    to={`/writeups/${comment.postSlug}`}
-                    className="text-[10px] font-mono uppercase tracking-[0.2em] text-saber-blue hover:underline truncate"
-                  >
-                    /{comment.postSlug}
-                  </Link>
-                </div>
-              ))}
-              <div className="shrink-0 w-[max(0px,calc((100vw-1280px)/2))]" />
-            </div>
-          </>
         )}
       </section>
 

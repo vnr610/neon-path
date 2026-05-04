@@ -15,6 +15,7 @@ import Index from "./pages/Index";
 import About from "./pages/About";
 import Skills from "./pages/Skills";
 import Projects from "./pages/Projects";
+import ProjectDetail from "./pages/ProjectDetail";
 import Writeups from "./pages/Blog";
 import WriteupPost from "./pages/BlogPost";
 import Timeline from "./pages/Timeline";
@@ -36,6 +37,7 @@ import AdminHome from "./pages/admin/AdminHome";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminNewsletter from "./pages/admin/AdminNewsletter";
+import AdminSettings from "./pages/admin/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +53,7 @@ function AppRoutes() {
         <Route path="/about" element={<About />} />
         <Route path="/skills" element={<Skills />} />
         <Route path="/projects" element={<Projects />} />
+        <Route path="/projects/:slug" element={<ProjectDetail />} />
         <Route path="/blog" element={<Writeups />} />
         <Route path="/blog/:slug" element={<WriteupPost />} />
         <Route path="/writeups" element={<Writeups />} />
@@ -74,6 +77,7 @@ function AppRoutes() {
         <Route path="/admin/messages" element={<RequireAdmin><AdminMessages /></RequireAdmin>} />
         <Route path="/admin/analytics" element={<RequireAdmin><AdminAnalytics /></RequireAdmin>} />
         <Route path="/admin/newsletter" element={<RequireAdmin><AdminNewsletter /></RequireAdmin>} />
+        <Route path="/admin/settings" element={<RequireAdmin><AdminSettings /></RequireAdmin>} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

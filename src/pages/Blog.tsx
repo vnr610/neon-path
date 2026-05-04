@@ -18,6 +18,21 @@ import { Button } from "@/components/ui/button";
 
 const PAGE_SIZE = 6;
 
+// Common CTF/security categories for quick filtering
+const CATEGORY_FILTERS = [
+  { label: "All", value: null },
+  { label: "CTF", value: "ctf" },
+  { label: "Web", value: "web" },
+  { label: "Reverse", value: "reverse" },
+  { label: "Pwn", value: "pwn" },
+  { label: "OSINT", value: "osint" },
+  { label: "Crypto", value: "crypto" },
+  { label: "Forensics", value: "forensics" },
+  { label: "Misc", value: "misc" },
+  { label: "Fullstack", value: "fullstack" },
+  { label: "DevLog", value: "devlog" },
+];
+
 type NewDraft = {
   title: string;
   slug: string;
@@ -40,6 +55,7 @@ const Blog = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const { role } = useAuth();
   const canEdit = role === "admin" || role === "editor";
@@ -60,7 +76,7 @@ const Blog = () => {
     });
   }, []);
 
-  useEffect(() => { setPage(1); }, [query]);
+  useEffect(() => { setPage(1); }, [query, activeCategory]);
 
   /* Auto-generate slug from title */
   useEffect(() => {
@@ -70,15 +86,21 @@ const Blog = () => {
   }, [draft.title]);
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return posts;
+    let result = posts;
+    if (activeCategory) {
+      result = result.filter((p) =>
+        p.tags.some((t) => t.toLowerCase() === activeCategory.toLowerCase())
+      );
+    }
+    if (!query.trim()) return result;
     const q = query.toLowerCase();
-    return posts.filter(
+    return result.filter(
       (p) =>
         p.title.toLowerCase().includes(q) ||
         p.excerpt?.toLowerCase().includes(q) ||
         p.tags.some((t) => t.toLowerCase().includes(q)),
     );
-  }, [posts, query]);
+  }, [posts, query, activeCategory]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -365,22 +387,40 @@ const Blog = () => {
 
           {/* Search bar */}
           {posts.length > 0 && (
-            <div className="relative mb-8 max-w-md animate-fade-up opacity-0" style={{ animationDelay: "0.05s" }}>
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by title, tag…"
-                className="w-full rounded-md border border-border/60 bg-background/60 pl-9 pr-9 py-2.5 text-sm font-mono placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40 focus:ring-1 focus:ring-foreground/20 transition-colors"
-              />
-              {query && (
-                <button onClick={() => setQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors"
-                  aria-label="Clear search">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
+            <div className="mb-6 space-y-4 animate-fade-up opacity-0" style={{ animationDelay: "0.05s" }}>
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search by title, tag…"
+                  className="w-full rounded-md border border-border/60 bg-background/60 pl-9 pr-9 py-2.5 text-sm font-mono placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40 focus:ring-1 focus:ring-foreground/20 transition-colors"
+                />
+                {query && (
+                  <button onClick={() => setQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors"
+                    aria-label="Clear search">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              {/* Category filter pills */}
+              <div className="flex flex-wrap gap-2">
+                {CATEGORY_FILTERS.map((cat) => (
+                  <button
+                    key={cat.label}
+                    onClick={() => setActiveCategory(cat.value)}
+                    className={`px-3 py-1 rounded-full text-xs uppercase tracking-[0.25em] font-mono border transition-colors ${
+                      activeCategory === cat.value
+                        ? "border-saber-blue text-saber-blue bg-saber-blue/10"
+                        : "border-border/60 text-muted-foreground hover:border-foreground/40 hover:text-foreground"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

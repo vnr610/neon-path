@@ -1,6 +1,6 @@
 import { ReactNode, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Home, FileText, Sparkles, FolderGit2, GitCommitVertical, Award, LogOut, Swords, Menu, X, Mail, BarChart2, Rss } from "lucide-react";
+import { LayoutDashboard, Home, FileText, Sparkles, FolderGit2, GitCommitVertical, Award, LogOut, Swords, Menu, X, Mail, BarChart2, Rss, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const items = [
@@ -14,6 +14,7 @@ const items = [
   { to: "/admin/messages", label: "Messages", icon: Mail },
   { to: "/admin/newsletter", label: "Newsletter", icon: Rss },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart2 },
+  { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export function AdminLayout({ children, title }: { children: ReactNode; title: string }) {

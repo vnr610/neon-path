@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.skill-snapshot]
 verify_jwt = false
+
+[functions.rss]
+verify_jwt = false

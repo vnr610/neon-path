@@ -3,19 +3,22 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AdminFormShell, type FormStatus } from "@/components/saber/AdminFormShell";
 import { FormField, FormSection, SaberInput, SaberTextarea } from "@/components/saber/FormField";
 import { Button } from "@/components/ui/button";
-import { Edit3, ImageUp, Trash2, Sparkles, Wand2, FileText, Loader2 } from "lucide-react";
+import { Edit3, ImageUp, Trash2, Sparkles, Wand2, FileText, Loader2, FileEdit, Globe, Clock, CheckSquare, Square, Layers, Image as ImageIcon, Copy, Check } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import {
   addBlogPost,
   deleteBlogPost,
-  loadBlogPosts,
+  deleteBlogPostsBulk,
+  loadAllBlogPosts,
   slugify,
   updateBlogPost,
   uploadBlogThumbnail,
+  uploadBlogMedia,
   blogContentPreview,
   type BlogPost,
 } from "@/lib/content";
 import { useAiBlogAssist } from "@/hooks/useAiBlogAssist";
+import { supabase } from "@/integrations/supabase/client";
 
 const blankBlogForm = {
   title: "",
@@ -25,6 +28,8 @@ const blankBlogForm = {
   tags: "",
   thumbnailUrl: "",
   author: "",
+  status: "published" as "draft" | "published",
+  publishAt: "",
 };
 
 const AdminBlog = () => {
@@ -38,8 +43,19 @@ const AdminBlog = () => {
   const ai = useAiBlogAssist();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // Bulk selection
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  // Media library
+  const [activeTab, setActiveTab] = useState<"posts" | "media">("posts");
+  const [mediaFiles, setMediaFiles] = useState<{ name: string; url: string; folder: string }[]>([]);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const mediaUploadRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
-    loadBlogPosts().then((data) => {
+    loadAllBlogPosts().then((data) => {
       setPosts(data);
       // Auto-open edit mode if ?edit=<id> or ?edit=<slug> is in the URL
       const editParam = searchParams.get("edit");
@@ -55,6 +71,8 @@ const AdminBlog = () => {
             tags: target.tags.join(", "),
             thumbnailUrl: target.thumbnailUrl || "",
             author: target.author || "",
+            status: target.status ?? "published",
+            publishAt: target.publishAt ? target.publishAt.slice(0, 16) : "",
           });
           setStatus("ready");
           setStatusMessage("Editing existing writeup.");
@@ -85,6 +103,8 @@ const AdminBlog = () => {
       tags: post.tags.join(", "),
       thumbnailUrl: post.thumbnailUrl || "",
       author: post.author || "",
+      status: post.status ?? "published",
+      publishAt: post.publishAt ? post.publishAt.slice(0, 16) : "",
     });
     setStatus("ready");
     setStatusMessage("Editing existing writeup.");
@@ -93,9 +113,73 @@ const AdminBlog = () => {
 
   const handleDelete = async (id: string) => {
     await deleteBlogPost(id);
-    const data = await loadBlogPosts();
+    const data = await loadAllBlogPosts();
     setPosts(data);
     if (editingId === id) resetForm();
+  };
+
+  // Bulk delete
+  const handleBulkDelete = async () => {
+    if (!selected.size) return;
+    if (!confirm(`Delete ${selected.size} post${selected.size > 1 ? "s" : ""}? This cannot be undone.`)) return;
+    setBulkDeleting(true);
+    await deleteBlogPostsBulk(Array.from(selected));
+    const data = await loadAllBlogPosts();
+    setPosts(data);
+    setSelected(new Set());
+    setBulkDeleting(false);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelected((prev) => prev.size === posts.length ? new Set() : new Set(posts.map((p) => p.id)));
+  };
+
+  // Media library
+  const loadMedia = async () => {
+    setMediaLoading(true);
+    // List files from all subfolders in blog-media bucket
+    const folders = ["blog-thumbnails", "blog-content", "avatars", ""];
+    const allFiles: { name: string; url: string; folder: string }[] = [];
+
+    for (const folder of folders) {
+      const { data } = await supabase.storage
+        .from("blog-media")
+        .list(folder, { limit: 100, sortBy: { column: "created_at", order: "desc" } });
+
+      if (data) {
+        for (const f of data) {
+          if (f.name === ".emptyFolderPlaceholder" || f.id === null) continue;
+          const path = folder ? `${folder}/${f.name}` : f.name;
+          const { data: urlData } = supabase.storage.from("blog-media").getPublicUrl(path);
+          allFiles.push({ name: f.name, url: urlData.publicUrl, folder });
+        }
+      }
+    }
+
+    setMediaFiles(allFiles);
+    setMediaLoading(false);
+  };
+
+  const handleMediaUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const url = await uploadBlogMedia(file);
+    if (url) loadMedia();
+  };
+
+  const copyUrl = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedUrl(url);
+    setTimeout(() => setCopiedUrl(null), 2000);
   };
 
   const handleThumbnailUpload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -285,6 +369,8 @@ const AdminBlog = () => {
         contentFormat: "markdown",
         thumbnailUrl: thumbnailUrl || undefined,
         author: author || undefined,
+        status: formData.status,
+        publishAt: formData.publishAt || null,
       });
       if (!updated) {
         setStatus("error");
@@ -292,7 +378,7 @@ const AdminBlog = () => {
         return;
       }
       setStatus("success");
-      setStatusMessage("Writeup updated successfully.");
+      setStatusMessage(formData.status === "draft" ? "Draft saved." : "Writeup updated successfully.");
     } else {
       const created = await addBlogPost({
         title,
@@ -303,6 +389,8 @@ const AdminBlog = () => {
         contentFormat: "markdown",
         thumbnailUrl: thumbnailUrl || undefined,
         author: author || undefined,
+        status: formData.status,
+        publishAt: formData.publishAt || null,
       });
       if (!created) {
         setStatus("error");
@@ -310,10 +398,10 @@ const AdminBlog = () => {
         return;
       }
       setStatus("success");
-      setStatusMessage("Writeup published successfully.");
+      setStatusMessage(formData.status === "draft" ? "Draft saved." : "Writeup published successfully.");
     }
 
-    const data = await loadBlogPosts();
+    const data = await loadAllBlogPosts();
     setPosts(data);
     resetForm();
   };
@@ -512,41 +600,183 @@ const AdminBlog = () => {
               </div>
             </FormField>
           </FormSection>
+
+          <FormSection title="Publishing">
+            {/* Status toggle */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setFormData((d) => ({ ...d, status: "published", publishAt: "" }))}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md border text-xs uppercase tracking-[0.2em] font-mono transition-colors ${
+                  formData.status === "published"
+                    ? "border-saber-blue text-saber-blue bg-saber-blue/10"
+                    : "border-border/60 text-muted-foreground hover:border-foreground/40"
+                }`}
+              >
+                <Globe className="h-3.5 w-3.5" /> Published
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData((d) => ({ ...d, status: "draft" }))}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md border text-xs uppercase tracking-[0.2em] font-mono transition-colors ${
+                  formData.status === "draft"
+                    ? "border-amber-500/60 text-amber-400 bg-amber-500/10"
+                    : "border-border/60 text-muted-foreground hover:border-foreground/40"
+                }`}
+              >
+                <FileEdit className="h-3.5 w-3.5" /> Draft
+              </button>
+            </div>
+
+            {/* Schedule — only shown for drafts */}
+            {formData.status === "draft" && (
+              <FormField id="publishAt" label="Schedule publish" optional hint="Auto-publishes at this date/time (UTC). Leave blank to keep as draft.">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <SaberInput
+                    name="publishAt"
+                    type="datetime-local"
+                    value={formData.publishAt}
+                    onChange={(e) => setFormData({ ...formData, publishAt: e.target.value })}
+                    className="flex-1"
+                  />
+                </div>
+              </FormField>
+            )}
+          </FormSection>
         </AdminFormShell>
 
         <section className="space-y-4">
+          {/* Tab bar */}
+          <div className="flex items-center gap-1 border-b border-border/60 pb-2">
+            <button onClick={() => setActiveTab("posts")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs uppercase tracking-[0.2em] font-mono transition-colors ${activeTab === "posts" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+              <Layers className="h-3.5 w-3.5" /> Posts
+            </button>
+            <button onClick={() => { setActiveTab("media"); loadMedia(); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs uppercase tracking-[0.2em] font-mono transition-colors ${activeTab === "media" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+              <ImageIcon className="h-3.5 w-3.5" /> Media
+            </button>
+          </div>
+
+          {activeTab === "media" ? (
+            /* ── MEDIA LIBRARY ── */
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Click a URL to copy it.</p>
+                <div>
+                  <input ref={mediaUploadRef} type="file" accept="image/*" className="sr-only" onChange={handleMediaUpload} />
+                  <Button type="button" variant="outline" size="sm" className="saber-border gap-1.5" onClick={() => mediaUploadRef.current?.click()}>
+                    <ImageUp className="h-3.5 w-3.5" /> Upload
+                  </Button>
+                </div>
+              </div>
+              {mediaLoading ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {[0,1,2,3].map((i) => <div key={i} className="aspect-video rounded-md bg-muted/20 animate-pulse" />)}
+                </div>
+              ) : mediaFiles.length === 0 ? (
+                <div className="saber-card p-6 text-center text-muted-foreground text-sm">No media uploaded yet.</div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {mediaFiles.map((f) => (
+                    <button key={f.url} onClick={() => copyUrl(f.url)}
+                      className="group relative rounded-md overflow-hidden border border-border/60 hover:border-saber-blue/40 transition-colors text-left bg-muted/20">
+                      <div className="aspect-video w-full overflow-hidden bg-muted/30">
+                        <img
+                          src={f.url}
+                          alt={f.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = "none";
+                          }}
+                        />
+                      </div>
+                      <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.2em]">
+                        {copiedUrl === f.url ? <><Check className="h-3 w-3 text-green-500" />Copied</> : <><Copy className="h-3 w-3" />Copy URL</>}
+                      </div>
+                      <div className="px-2 py-1 border-t border-border/60">
+                        <p className="text-[10px] text-muted-foreground truncate">{f.name}</p>
+                        {f.folder && <p className="text-[9px] text-muted-foreground/50 truncate">{f.folder}/</p>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+          /* ── POSTS LIST ── */
+          <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-eyebrow-bright text-[10px] uppercase tracking-[0.32em]">Saved writeups</p>
-              <p className="text-sm text-muted-foreground">Manage existing technical writeups.</p>
+              <p className="text-sm text-muted-foreground">{posts.length} total · {posts.filter(p => p.status === "draft").length} drafts</p>
             </div>
-            {editingId && (
-              <Button variant="ghost" size="sm" onClick={resetForm}>
-                Cancel edit
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {selected.size > 0 && (
+                <Button variant="destructive" size="sm" onClick={handleBulkDelete} disabled={bulkDeleting} className="gap-1.5">
+                  {bulkDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  Delete {selected.size}
+                </Button>
+              )}
+              {editingId && (
+                <Button variant="ghost" size="sm" onClick={resetForm}>Cancel edit</Button>
+              )}
+            </div>
           </div>
 
           {posts.length === 0 ? (
-            <div className="saber-card p-6 text-muted-foreground">No saved writeups yet.</div>
+            <div className="saber-card p-6 text-muted-foreground text-sm">No saved writeups yet.</div>
           ) : (
+            <>
+              {/* Select all row */}
+              <div className="flex items-center gap-2 px-1">
+                <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-foreground transition-colors">
+                  {selected.size === posts.length && posts.length > 0
+                    ? <CheckSquare className="h-4 w-4" />
+                    : <Square className="h-4 w-4" />}
+                </button>
+                <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground">
+                  {selected.size > 0 ? `${selected.size} selected` : "Select all"}
+                </span>
+              </div>
+
             <div className="space-y-3">
               {posts.map((post) => (
-                <article key={post.id} className="saber-card p-5">
+                <article key={post.id} className={`saber-card p-5 transition-colors ${selected.has(post.id) ? "border-saber-blue/40 bg-saber-blue/5" : ""}`}>
+                  <div className="flex items-start gap-3">
+                    {/* Checkbox */}
+                    <button onClick={() => toggleSelect(post.id)} className="mt-1 shrink-0 text-muted-foreground hover:text-foreground transition-colors">
+                      {selected.has(post.id) ? <CheckSquare className="h-4 w-4 text-saber-blue" /> : <Square className="h-4 w-4" />}
+                    </button>
+                    <div className="flex-1 min-w-0">
                   {post.thumbnailUrl ? (
                     <img
                       src={post.thumbnailUrl}
                       alt=""
-                      className="h-32 w-full object-cover rounded-md mb-4 border border-border/60"
+                      className="h-24 w-full object-cover rounded-md mb-3 border border-border/60"
                     />
                   ) : null}
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">{post.slug}</p>
-                      <h3 className="mt-2 text-lg font-semibold">{post.title}</h3>
-                      <p className="mt-2 text-sm text-muted-foreground">{blogContentPreview(post)}</p>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground truncate">{post.slug}</p>
+                        {post.status === "draft" ? (
+                          <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-[0.2em] font-mono bg-amber-500/15 text-amber-400 border border-amber-500/30">Draft</span>
+                        ) : (
+                          <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-[0.2em] font-mono bg-green-500/10 text-green-400 border border-green-500/20">Live</span>
+                        )}
+                        {post.publishAt && post.status === "draft" && (
+                          <span className="shrink-0 flex items-center gap-1 text-[9px] font-mono text-muted-foreground">
+                            <Clock className="h-3 w-3" />{new Date(post.publishAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-base font-semibold">{post.title}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{blogContentPreview(post)}</p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 shrink-0">
                       <Button type="button" variant="outline" size="sm" onClick={() => handleEdit(post)}>
                         <Edit3 className="h-4 w-4" /> Edit
                       </Button>
@@ -555,9 +785,14 @@ const AdminBlog = () => {
                       </Button>
                     </div>
                   </div>
+                    </div>
+                  </div>
                 </article>
               ))}
             </div>
+            </>
+          )}
+          </div>
           )}
         </section>
       </div>

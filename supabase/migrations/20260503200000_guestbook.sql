@@ -8,30 +8,25 @@ create table if not exists public.guestbook (
 
 alter table public.guestbook enable row level security;
 
-drop policy if exists "Anyone can read approved guestbook entries" on public.guestbook;
 create policy "Anyone can read approved guestbook entries"
   on public.guestbook for select
   using (approved = true);
 
-drop policy if exists "Anyone can submit a guestbook entry" on public.guestbook;
 create policy "Anyone can submit a guestbook entry"
   on public.guestbook for insert
   with check (true);
 
-drop policy if exists "Only admins can read all guestbook entries" on public.guestbook;
 create policy "Only admins can read all guestbook entries"
   on public.guestbook for select
   to authenticated
   using (public.has_role(auth.uid(), 'admin'));
 
-drop policy if exists "Only admins can update guestbook entries" on public.guestbook;
 create policy "Only admins can update guestbook entries"
   on public.guestbook for update
   to authenticated
   using (public.has_role(auth.uid(), 'admin'))
   with check (public.has_role(auth.uid(), 'admin'));
 
-drop policy if exists "Only admins can delete guestbook entries" on public.guestbook;
 create policy "Only admins can delete guestbook entries"
   on public.guestbook for delete
   to authenticated
