@@ -4,7 +4,7 @@
  *
  * Required secrets:
  *   RESEND_API_KEY          — from resend.com
- *   NOTIFY_EMAIL            — your email (grindwithmt@gmail.com)
+ *   NOTIFY_EMAIL            — your notification email address
  *   SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY — auto-injected
  */
 
@@ -16,21 +16,63 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Simple in-memory rate limiter: max 3 submissions per IP per 10 minutes
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const window = 10 * 60 * 1000; // 10 minutes
+  const limit = 3;
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + window });
+    return true;
+  }
+  if (entry.count >= limit) return false;
+  entry.count++;
+  return true;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+
+  // Rate limiting by IP
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    ?? req.headers.get("cf-connecting-ip")
+    ?? "unknown";
+
+  if (!checkRateLimit(ip)) {
+    return new Response(JSON.stringify({ error: "Too many requests. Please wait before submitting again." }), {
+      status: 429, headers: { ...cors, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const { name, email, message } = await req.json() as {
       name?: string; email?: string; message?: string;
     };
 
+    // Validate required fields
     if (!name?.trim() || !email?.trim() || !message?.trim()) {
       return new Response(JSON.stringify({ error: "name, email, and message are required" }), {
         status: 400, headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    // Validate lengths
+    if (name.trim().length > 100) {
+      return new Response(JSON.stringify({ error: "Name too long (max 100 characters)" }), {
+        status: 400, headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+    if (message.trim().length > 5000) {
+      return new Response(JSON.stringify({ error: "Message too long (max 5000 characters)" }), {
+        status: 400, headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
       return new Response(JSON.stringify({ error: "Invalid email address" }), {
         status: 400, headers: { ...cors, "Content-Type": "application/json" },
       });
@@ -58,9 +100,13 @@ serve(async (req) => {
 
     // ── Send notification via Resend ──────────────────────────────────────────
     const resendKey = Deno.env.get("RESEND_API_KEY");
-    const notifyEmail = Deno.env.get("NOTIFY_EMAIL") ?? "grindwithmt@gmail.com";
+    const notifyEmail = Deno.env.get("NOTIFY_EMAIL");
 
-    if (resendKey) {
+    if (!notifyEmail) {
+      console.warn("NOTIFY_EMAIL not set — skipping email notification");
+    }
+
+    if (resendKey && notifyEmail) {
       const sentAt = new Date().toLocaleString("en-US", {
         timeZone: "Asia/Kathmandu",
         dateStyle: "medium",

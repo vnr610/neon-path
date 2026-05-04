@@ -7,7 +7,14 @@ type Props = {
   contentFormat: BlogContentFormat;
 };
 
-const htmlPurify = { USE_PROFILES: { html: true } as const };
+const htmlPurify = {
+  USE_PROFILES: { html: true } as const,
+  // Explicitly block dangerous elements even within the html profile
+  FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form", "input", "button", "link", "meta", "base"],
+  FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onblur", "onchange", "onsubmit", "onkeydown", "onkeyup", "onkeypress", "style"],
+  ALLOW_DATA_ATTR: false,
+  FORCE_BODY: true,
+};
 
 export function BlogPostBody({ content, contentFormat }: Props) {
   if (contentFormat === "html") {
