@@ -17,6 +17,7 @@ const moreLinks = [
   { to: "/projects", label: "Projects", icon: FolderGit2 },
   { to: "/timeline", label: "Timeline", icon: GitCommitVertical },
   { to: "/certifications", label: "Certifications", icon: Award },
+  { to: "/guestbook", label: "Guestbook", icon: BookMarked },
 ];
 
 const allLinks = [...primaryLinks, ...moreLinks];
@@ -144,7 +145,7 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl">
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
-        <Link to="/" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex items-center gap-2.5 group shrink-0">
+        <Link to="/" className="flex items-center gap-2.5 group shrink-0">
           <div className="relative h-7 w-7 flex items-center justify-center">
             <svg viewBox="0 0 28 28" className="absolute inset-0 h-full w-full logo-ring text-foreground/15" fill="none">
               <circle cx="14" cy="14" r="13" stroke="currentColor" strokeWidth="0.5" strokeDasharray="3 5" />
@@ -167,7 +168,6 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
               key={l.to}
               to={l.to}
               end={l.to === "/"}
-              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               className={({ isActive }) =>
                 `relative px-3 py-2 text-xs uppercase tracking-[0.2em] transition-colors ${
                   isActive ? "text-saber-blue" : "text-muted-foreground hover:text-foreground"
@@ -220,7 +220,7 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
                 key={l.to}
                 to={l.to}
                 end={l.to === "/"}
-                onClick={() => { setOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                onClick={() => setOpen(false)}
                 className={({ isActive }) =>
                   `px-3 py-2.5 rounded-md text-xs uppercase tracking-[0.2em] ${
                     isActive ? "bg-muted text-saber-blue" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
