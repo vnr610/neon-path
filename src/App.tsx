@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/components/saber/ThemeProvider";
 import { CommandPalette, CommandPaletteProvider } from "@/components/saber/CommandPalette";
 import { OfflineDetector } from "@/components/saber/OfflineDetector";
 import { ErrorBoundary } from "@/components/saber/ErrorBoundary";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { usePageTracking } from "@/hooks/usePageTracking";
 
 import Index from "./pages/Index";
@@ -98,6 +99,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <SpeedInsights />
           <BrowserRouter>
             <OfflineDetector>
               <CommandPaletteProvider>
