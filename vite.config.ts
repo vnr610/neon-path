@@ -66,8 +66,8 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
   build: {
-    // Raise the warning threshold — vendor chunk contains mammoth+markdown libs (~320 kB gzipped), acceptable for a portfolio
-    chunkSizeWarningLimit: 1000,
+    // Raise the warning threshold — vendor contains recharts/d3/markdown/mammoth (~400 kB gzipped), acceptable for a portfolio
+    chunkSizeWarningLimit: 1300,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
@@ -90,14 +90,6 @@ export default defineConfig(({ mode }) => ({
           // Radix UI primitives (large — split from app code)
           if (id.includes("node_modules/@radix-ui")) {
             return "radix";
-          }
-          // Charts (only used on skills/analytics pages)
-          if (id.includes("node_modules/recharts") || id.includes("node_modules/d3-")) {
-            return "charts";
-          }
-          // Animations
-          if (id.includes("node_modules/animejs")) {
-            return "animations";
           }
           // Lucide icons (very large — split separately)
           if (id.includes("node_modules/lucide-react")) {
