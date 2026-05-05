@@ -72,15 +72,15 @@ function FooterAnimation() {
 
           {/* Edge gradient */}
           <linearGradient id="edgeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0" />
-            <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.4" />
-            <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
+            <stop offset="0%" stopColor="hsl(var(--saber-blue))" stopOpacity="0" />
+            <stop offset="50%" stopColor="hsl(var(--saber-blue))" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="hsl(var(--saber-purple))" stopOpacity="0" />
           </linearGradient>
 
           {/* Travelling packet gradient */}
           <radialGradient id="packetGrad">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+            <stop offset="0%" stopColor="hsl(var(--saber-blue))" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="hsl(var(--saber-blue))" stopOpacity="0" />
           </radialGradient>
         </defs>
 
@@ -137,7 +137,7 @@ function FooterAnimation() {
               x={mx} y={my}
               fontSize="7"
               fontFamily="monospace"
-              fill="#3b82f6"
+              fill="hsl(var(--saber-blue))"
               textAnchor="middle"
               opacity="0"
             >
@@ -168,7 +168,7 @@ function FooterAnimation() {
             <g key={`node-${i}`} filter="url(#nodeGlow)">
               {/* Outer ping ring */}
               <circle cx={n.x} cy={n.y} r={n.r + 4}
-                stroke="#3b82f6" strokeWidth="0.5" fill="none" opacity="0">
+                stroke="hsl(var(--saber-blue))" strokeWidth="0.5" fill="none" opacity="0">
                 <animate attributeName="r" values={`${n.r};${n.r + 8};${n.r}`}
                   dur={`${dur}s`} begin={`${delay}s`} repeatCount="indefinite" />
                 <animate attributeName="opacity" values="0.4;0;0.4"
@@ -176,13 +176,13 @@ function FooterAnimation() {
               </circle>
               {/* Core dot */}
               <circle cx={n.x} cy={n.y} r={n.r}
-                fill="#3b82f6" opacity="0.2">
+                fill="hsl(var(--saber-blue))" opacity="0.2">
                 <animate attributeName="opacity" values="0.2;0.7;0.2"
                   dur={`${dur}s`} begin={`${delay}s`} repeatCount="indefinite" />
               </circle>
               {/* Inner bright dot */}
               <circle cx={n.x} cy={n.y} r={Math.max(1, n.r - 1.5)}
-                fill="#93c5fd" opacity="0.6">
+                fill="hsl(var(--saber-purple))" opacity="0.6">
                 <animate attributeName="opacity" values="0.3;0.9;0.3"
                   dur={`${dur}s`} begin={`${delay}s`} repeatCount="indefinite" />
               </circle>
@@ -191,10 +191,10 @@ function FooterAnimation() {
         })}
 
         {/* Corner brackets */}
-        <path d="M0 0 L0 14 M0 0 L18 0" stroke="#3b82f6" strokeWidth="1" opacity="0.3" />
-        <path d="M1200 0 L1200 14 M1200 0 L1182 0" stroke="#3b82f6" strokeWidth="1" opacity="0.3" />
-        <path d="M0 96 L0 82 M0 96 L18 96" stroke="#3b82f6" strokeWidth="1" opacity="0.3" />
-        <path d="M1200 96 L1200 82 M1200 96 L1182 96" stroke="#3b82f6" strokeWidth="1" opacity="0.3" />
+        <path d="M0 0 L0 14 M0 0 L18 0" stroke="hsl(var(--saber-blue))" strokeWidth="1" opacity="0.3" />
+        <path d="M1200 0 L1200 14 M1200 0 L1182 0" stroke="hsl(var(--saber-blue))" strokeWidth="1" opacity="0.3" />
+        <path d="M0 96 L0 82 M0 96 L18 96" stroke="hsl(var(--saber-blue))" strokeWidth="1" opacity="0.3" />
+        <path d="M1200 96 L1200 82 M1200 96 L1182 96" stroke="hsl(var(--saber-blue))" strokeWidth="1" opacity="0.3" />
       </svg>
     </div>
   );
