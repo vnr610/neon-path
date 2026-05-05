@@ -1,11 +1,6 @@
 /**
  * useFont — global font theme context.
  * Applies a class to <html> and persists the choice to localStorage.
- *
- * Font themes (all fonts already loaded via Google Fonts in index.css):
- *   realm    — Orbitron display + JetBrains Mono body  (default, cyber feel)
- *   terminal — JetBrains Mono for everything           (full hacker mono)
- *   clean    — Space Grotesk display + body            (readable sans-serif)
  */
 
 import {
@@ -16,12 +11,30 @@ import {
   ReactNode,
 } from "react";
 
-export type FontTheme = "realm" | "terminal" | "clean";
+export type FontTheme =
+  | "realm"
+  | "terminal"
+  | "clean"
+  | "inter"
+  | "fira"
+  | "ibm"
+  | "sora"
+  | "mixed";
 
-export const FONT_THEMES: { id: FontTheme; label: string; preview: string }[] = [
-  { id: "realm",    label: "Realm",    preview: "Orbitron + Mono" },
-  { id: "terminal", label: "Terminal", preview: "Full Mono"        },
-  { id: "clean",    label: "Clean",    preview: "Space Grotesk"    },
+export const FONT_THEMES: {
+  id: FontTheme;
+  label: string;
+  preview: string;   // shown in the picker as a sample string
+  meta: string;      // font name description
+}[] = [
+  { id: "realm",    label: "Realm",    preview: "Aa",  meta: "Orbitron + JetBrains Mono"  },
+  { id: "terminal", label: "Terminal", preview: "Aa",  meta: "JetBrains Mono"              },
+  { id: "clean",    label: "Clean",    preview: "Aa",  meta: "Space Grotesk"               },
+  { id: "inter",    label: "Inter",    preview: "Aa",  meta: "Inter + Fira Code"           },
+  { id: "fira",     label: "Fira",     preview: "Aa",  meta: "Fira Code"                   },
+  { id: "ibm",      label: "IBM Plex", preview: "Aa",  meta: "IBM Plex Mono"               },
+  { id: "sora",     label: "Sora",     preview: "Aa",  meta: "Sora + JetBrains Mono"       },
+  { id: "mixed",    label: "Mixed",    preview: "Aa",  meta: "Sora + IBM Plex Mono"        },
 ];
 
 const STORAGE_KEY = "vnr610-font-theme";
@@ -44,7 +57,6 @@ export function FontProvider({ children }: { children: ReactNode }) {
     }
   });
 
-  // Apply class to <html> whenever font changes
   useEffect(() => {
     const root = document.documentElement;
     FONT_THEMES.forEach((t) => root.classList.remove(`font-theme-${t.id}`));
@@ -52,9 +64,11 @@ export function FontProvider({ children }: { children: ReactNode }) {
     try { localStorage.setItem(STORAGE_KEY, font); } catch { /* ignore */ }
   }, [font]);
 
-  const setFont = (f: FontTheme) => setFontState(f);
-
-  return <Ctx.Provider value={{ font, setFont }}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={{ font, setFont: setFontState }}>
+      {children}
+    </Ctx.Provider>
+  );
 }
 
 export function useFont(): FontCtx {

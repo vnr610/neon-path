@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Orbitron:wght@500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Orbitron:wght@500;600;700;800;900&family=Sora:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -70,53 +70,57 @@
 
   /* ── Light theme ── */
   .light {
-    --background: 0 0% 98%;
-    --foreground: 0 0% 8%;
+    --background: 0 0% 97%;
+    --foreground: 220 15% 12%;
 
-    --card: 0 0% 96%;
-    --card-foreground: 0 0% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 12%;
 
-    --popover: 0 0% 97%;
-    --popover-foreground: 0 0% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 12%;
 
-    --primary: 0 0% 10%;
+    --primary: 220 15% 10%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 0 0% 90%;
-    --secondary-foreground: 0 0% 10%;
+    --secondary: 220 10% 92%;
+    --secondary-foreground: 220 15% 12%;
 
-    --muted: 0 0% 92%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 220 10% 94%;
+    --muted-foreground: 220 10% 42%;
 
-    --accent: 0 0% 20%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 220 10% 88%;
+    --accent-foreground: 220 15% 12%;
 
-    --destructive: 0 60% 50%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 84%;
-    --input: 0 0% 88%;
-    --ring: 0 0% 20%;
+    --border: 220 10% 86%;
+    --input: 220 10% 90%;
+    --ring: 220 15% 30%;
 
-    --saber-blue: 0 0% 12%;
-    --saber-purple: 0 0% 35%;
+    /* Saber tokens in light — dark ink instead of white glow */
+    --saber-blue: 220 15% 14%;
+    --saber-purple: 260 20% 38%;
+    --saber-red: 0 60% 45%;
+    --saber-green: 150 40% 35%;
 
-    --gradient-saber: linear-gradient(135deg, hsl(0 0% 10%) 0%, hsl(0 0% 40%) 100%);
-    --gradient-hero: radial-gradient(ellipse 80% 60% at 50% 0%, hsl(0 0% 0% / 0.04) 0%, transparent 60%),
-                     radial-gradient(ellipse 60% 50% at 80% 100%, hsl(0 0% 0% / 0.03) 0%, transparent 60%);
+    --gradient-saber: linear-gradient(135deg, hsl(220 15% 10%) 0%, hsl(220 10% 40%) 100%);
+    --gradient-glow: radial-gradient(ellipse at center, hsl(220 15% 10% / 0.06) 0%, transparent 60%);
+    --gradient-hero: radial-gradient(ellipse 80% 60% at 50% 0%, hsl(220 15% 10% / 0.05) 0%, transparent 60%),
+                     radial-gradient(ellipse 60% 50% at 80% 100%, hsl(260 20% 38% / 0.04) 0%, transparent 60%);
 
-    --glow-blue: 0 0 24px hsl(0 0% 0% / 0.12), 0 0 60px hsl(0 0% 0% / 0.06);
-    --glow-purple: 0 0 24px hsl(0 0% 0% / 0.08), 0 0 60px hsl(0 0% 0% / 0.04);
-    --glow-soft: 0 0 0 1px hsl(0 0% 0% / 0.08), 0 8px 40px -8px hsl(0 0% 0% / 0.12);
+    --glow-blue:   0 0 20px hsl(220 15% 14% / 0.10), 0 0 48px hsl(220 15% 14% / 0.05);
+    --glow-purple: 0 0 20px hsl(260 20% 38% / 0.10), 0 0 48px hsl(260 20% 38% / 0.05);
+    --glow-soft:   0 0 0 1px hsl(220 10% 86% / 0.8), 0 4px 24px -4px hsl(220 15% 10% / 0.08);
 
-    --sidebar-background: 0 0% 95%;
-    --sidebar-foreground: 0 0% 20%;
-    --sidebar-primary: 0 0% 10%;
+    --sidebar-background: 0 0% 96%;
+    --sidebar-foreground: 220 15% 18%;
+    --sidebar-primary: 220 15% 10%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 0 0% 90%;
-    --sidebar-accent-foreground: 0 0% 10%;
-    --sidebar-border: 0 0% 84%;
-    --sidebar-ring: 0 0% 20%;
+    --sidebar-accent: 220 10% 91%;
+    --sidebar-accent-foreground: 220 15% 12%;
+    --sidebar-border: 220 10% 86%;
+    --sidebar-ring: 220 15% 30%;
   }
 }
 
@@ -129,6 +133,10 @@
     color-scheme: dark;
   }
 
+  .light {
+    color-scheme: light;
+  }
+
   body {
     @apply bg-background text-foreground font-mono antialiased;
     background-image:
@@ -137,8 +145,15 @@
     background-attachment: fixed;
   }
 
+  .light body,
+  .light {
+    background-image:
+      radial-gradient(ellipse 100% 60% at 50% -10%, hsl(220 15% 10% / 0.03) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 100% 100%, hsl(260 20% 38% / 0.03) 0%, transparent 60%);
+  }
+
   ::selection {
-    background: hsl(0 0% 100% / 0.25);
+    background: hsl(var(--foreground) / 0.15);
     color: hsl(var(--foreground));
   }
 
@@ -200,12 +215,12 @@
 
   .saber-border {
     @apply relative border border-border/60;
-    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.03);
+    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.03);
     transition: var(--transition-saber);
   }
 
   .saber-border:hover {
-    border-color: hsl(0 0% 100% / 0.4);
+    border-color: hsl(var(--foreground) / 0.35);
     box-shadow: var(--glow-soft);
   }
 
@@ -216,7 +231,7 @@
   .saber-bar {
     height: 2px;
     background: var(--gradient-saber);
-    box-shadow: 0 0 12px hsl(0 0% 100% / 0.5);
+    box-shadow: 0 0 12px hsl(var(--saber-blue) / 0.4);
   }
 
   .grid-bg {
@@ -268,12 +283,7 @@
 /* ── Font themes ──────────────────────────────────────────────────────────── */
 /*
  * Applied as a class on <html> by FontProvider.
- * All three fonts are already loaded via the Google Fonts @import above.
- *
- * Tailwind maps:
- *   font-display → --font-display  (headings, logo, eyebrows)
- *   font-mono    → --font-mono     (body, code, labels)
- *   font-sans    → --font-sans     (lead text, descriptions)
+ * All fonts loaded via Google Fonts @import above.
  */
 
 /* Default — Realm (Orbitron display + JetBrains Mono body) */
@@ -296,4 +306,39 @@
   --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   --font-mono:    'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   --font-sans:    'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Inter — neutral modern sans */
+.font-theme-inter {
+  --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'Fira Code', ui-monospace, monospace;
+  --font-sans:    'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Fira Code — ligature-rich mono */
+.font-theme-fira {
+  --font-display: 'Fira Code', ui-monospace, monospace;
+  --font-mono:    'Fira Code', ui-monospace, monospace;
+  --font-sans:    'Fira Code', ui-monospace, monospace;
+}
+
+/* IBM Plex Mono — editorial mono */
+.font-theme-ibm {
+  --font-display: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-mono:    'IBM Plex Mono', ui-monospace, monospace;
+  --font-sans:    'IBM Plex Mono', ui-monospace, monospace;
+}
+
+/* Sora — rounded modern sans */
+.font-theme-sora {
+  --font-display: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+  --font-sans:    'Sora', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Mixed — Sora headings + IBM Plex Mono body */
+.font-theme-mixed {
+  --font-display: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, monospace;
+  --font-sans:    'Inter', ui-sans-serif, system-ui, sans-serif;
 }
