@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, Search, X, Swords, Terminal, ShieldAlert, LayoutGrid, FolderGit2, GitCommitVertical, Award } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCommandPalette } from "@/components/saber/CommandPalette";
@@ -20,12 +20,46 @@ const moreLinks = [
   { to: "/certifications", label: "Certifications", icon: Award },
 ];
 
-const allLinks = [...primaryLinks, ...moreLinks];
+/**
+ * Returns true when the current pathname is within the given section root.
+ * "/" requires exact match so it doesn't mark everything as active.
+ */
+function isInSection(pathname: string, root: string): boolean {
+  if (root === "/") return pathname === "/";
+  return pathname === root || pathname.startsWith(root + "/");
+}
 
-/** Animated admin entry point — pulsing terminal icon when logged in as admin */
+/**
+ * Navigate to a section root and always scroll to top.
+ * - Already at root  → replace (no duplicate history) + smooth scroll to top
+ * - On a sub-page    → push to root (useScrollToTop in App.tsx handles scroll)
+ * - Elsewhere        → push to root
+ * Optional closeFn closes a menu before navigating.
+ */
+function useNavClick(closeFn?: () => void) {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  return useCallback(
+    (root: string) => {
+      closeFn?.();
+      if (pathname === root) {
+        // Already at root — replace to avoid duplicate history, force scroll
+        navigate(root, { replace: true });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        // Sub-page or different section — push (scroll handled by useScrollToTop)
+        navigate(root);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    },
+    [navigate, pathname, closeFn],
+  );
+}
+
+/** Animated admin entry point */
 function AdminButton({ mobile = false }: { mobile?: boolean }) {
   const { isAdmin, loading } = useAuth();
-
   if (loading) return null;
 
   if (isAdmin) {
@@ -64,14 +98,14 @@ function AdminButton({ mobile = false }: { mobile?: boolean }) {
   );
 }
 
-/** More dropdown — grid icon opens a small panel with the extra links */
+/** More dropdown */
 function MoreMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { pathname } = useLocation();
-  const isMoreActive = moreLinks.some((l) => pathname === l.to || pathname.startsWith(l.to + "/"));
+  const isMoreActive = moreLinks.some((l) => isInSection(pathname, l.to));
+  const handleNav = useNavClick(() => setOpen(false));
 
-  // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -80,7 +114,6 @@ function MoreMenu() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Close on route change
   useEffect(() => { setOpen(false); }, [pathname]);
 
   return (
@@ -103,27 +136,23 @@ function MoreMenu() {
       {open && (
         <div className="absolute top-full right-0 mt-2 w-52 rounded-xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-lg overflow-hidden z-50 animate-scale-in">
           <div className="p-1.5">
-            {moreLinks.map((l) => (
-              <NavLink
-                key={l.to}
-                to={l.to}
-                end
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs uppercase tracking-[0.2em] transition-colors ${
-                    isActive
+            {moreLinks.map((l) => {
+              const active = isInSection(pathname, l.to);
+              return (
+                <button
+                  key={l.to}
+                  onClick={() => handleNav(l.to)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs uppercase tracking-[0.2em] transition-colors text-left ${
+                    active
                       ? "bg-muted text-saber-blue"
                       : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <l.icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-saber-blue" : "text-muted-foreground/60"}`} />
-                    {l.label}
-                  </>
-                )}
-              </NavLink>
-            ))}
+                  }`}
+                >
+                  <l.icon className={`h-3.5 w-3.5 shrink-0 ${active ? "text-saber-blue" : "text-muted-foreground/60"}`} />
+                  {l.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -135,6 +164,8 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const { setOpen: openPalette } = useCommandPalette();
+  const handleNav = useNavClick();
+  const handleMobileNav = useNavClick(() => setOpen(false));
 
   const handleSearchClick = () => {
     if (onSearchOpen) onSearchOpen();
@@ -163,28 +194,23 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
 
         {/* Desktop nav — centered */}
         <nav className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
-          {primaryLinks.map((l) => (
-            <NavLink
-              key={l.to}
-              to={l.to}
-              end={l.to === "/"}
-              className={({ isActive }) =>
-                `relative px-3 py-2 text-xs uppercase tracking-[0.2em] transition-colors ${
-                  isActive ? "text-saber-blue" : "text-muted-foreground hover:text-foreground"
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {l.label}
-                  {isActive && (
-                    <span className="absolute left-3 right-3 -bottom-px h-px bg-saber-blue shadow-glow-blue animate-saber-ignite origin-left" />
-                  )}
-                </>
-              )}
-            </NavLink>
-          ))}
-          {/* More dropdown */}
+          {primaryLinks.map((l) => {
+            const active = isInSection(pathname, l.to);
+            return (
+              <button
+                key={l.to}
+                onClick={() => handleNav(l.to)}
+                className={`relative px-3 py-2 text-xs uppercase tracking-[0.2em] transition-colors ${
+                  active ? "text-saber-blue" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {l.label}
+                {active && (
+                  <span className="absolute left-3 right-3 -bottom-px h-px bg-saber-blue shadow-glow-blue animate-saber-ignite origin-left" />
+                )}
+              </button>
+            );
+          })}
           <MoreMenu />
         </nav>
 
@@ -211,53 +237,44 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
         </button>
       </div>
 
-      {/* Mobile menu — shows all links */}
+      {/* Mobile menu */}
       {open && (
         <div className="md:hidden border-t border-border/60 bg-background/95 backdrop-blur-xl">
           <nav className="container py-4 flex flex-col gap-1">
-            {/* Primary links */}
-            {primaryLinks.map((l) => (
-              <NavLink
-                key={l.to}
-                to={l.to}
-                end={l.to === "/"}
-                onClick={() => setOpen(false)}
-                className={({ isActive }) =>
-                  `px-3 py-2.5 rounded-md text-xs uppercase tracking-[0.2em] ${
-                    isActive ? "bg-muted text-saber-blue" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                  }`
-                }
-              >
-                {l.label}
-              </NavLink>
-            ))}
-            {/* More links with divider */}
+            {primaryLinks.map((l) => {
+              const active = isInSection(pathname, l.to);
+              return (
+                <button
+                  key={l.to}
+                  onClick={() => handleMobileNav(l.to)}
+                  className={`px-3 py-2.5 rounded-md text-xs uppercase tracking-[0.2em] text-left ${
+                    active ? "bg-muted text-saber-blue" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  }`}
+                >
+                  {l.label}
+                </button>
+              );
+            })}
             <div className="my-1 border-t border-border/40" />
             <p className="px-3 py-1 text-[9px] uppercase tracking-[0.35em] text-muted-foreground/40">More</p>
-            {moreLinks.map((l) => (
-              <NavLink
-                key={l.to}
-                to={l.to}
-                end
-                onClick={() => setOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-md text-xs uppercase tracking-[0.2em] ${
-                    isActive ? "bg-muted text-saber-blue" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <l.icon className={`h-3.5 w-3.5 ${isActive ? "text-saber-blue" : "text-muted-foreground/50"}`} />
-                    {l.label}
-                  </>
-                )}
-              </NavLink>
-            ))}
+            {moreLinks.map((l) => {
+              const active = isInSection(pathname, l.to);
+              return (
+                <button
+                  key={l.to}
+                  onClick={() => handleMobileNav(l.to)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-xs uppercase tracking-[0.2em] text-left ${
+                    active ? "bg-muted text-saber-blue" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  }`}
+                >
+                  <l.icon className={`h-3.5 w-3.5 ${active ? "text-saber-blue" : "text-muted-foreground/50"}`} />
+                  {l.label}
+                </button>
+              );
+            })}
             <div onClick={() => setOpen(false)}>
               <AdminButton mobile />
             </div>
-            {/* Font control in mobile menu */}
             <div className="mt-2 pt-3 border-t border-border/40 flex items-center gap-2 px-1">
               <FontToggle />
             </div>
