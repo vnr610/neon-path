@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Clock, Eye,
-  User, ArrowUp, Github, Linkedin, Twitter, Pencil, X, Check,
+  User, Github, Linkedin, Twitter, Pencil, X, Check,
   Loader2, Sparkles, Wand2, FileText, Tag,
 } from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
@@ -51,20 +51,11 @@ const BlogArticleView = () => {
   const [toc, setToc] = useState<TocItem[]>([]);
   const [siteProfile, setSiteProfile] = useState<SiteHomeSettings | null>(null);
   const [related, setRelated] = useState<BlogPost[]>([]);
-  const [showScrollTop, setShowScrollTop] = useState(false);
-
-  /* ── Edit mode state ── */
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<EditDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setShowScrollTop(window.scrollY > 600);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   useEffect(() => {
     if (!slug) { setPost(null); setNeighbors(null); return; }
@@ -228,16 +219,7 @@ const BlogArticleView = () => {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <ReadingProgress />
 
-      {/* Scroll to top */}
-      {showScrollTop && !editing && (
-        <button
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-6 right-6 z-50 h-10 w-10 rounded-full saber-border bg-background/80 backdrop-blur flex items-center justify-center text-muted-foreground hover:text-saber-blue hover:shadow-glow-blue transition-all"
-          aria-label="Scroll to top"
-        >
-          <ArrowUp className="h-4 w-4" />
-        </button>
-      )}
+      {/* Scroll to top — handled globally by SiteLayout */}
 
       {/* ── INLINE EDIT MODE ── */}
       {editing && draft ? (

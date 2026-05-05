@@ -525,7 +525,6 @@ serve(async (req) => {
       { path: "/skills",         freq: "weekly",  priority: "0.7" },
       { path: "/timeline",       freq: "weekly",  priority: "0.7" },
       { path: "/certifications", freq: "monthly", priority: "0.7" },
-      { path: "/guestbook",      freq: "weekly",  priority: "0.5" },
       { path: "/contact",        freq: "monthly", priority: "0.6" },
       { path: "/privacy",        freq: "yearly",  priority: "0.3" },
       { path: "/terms",          freq: "yearly",  priority: "0.3" },

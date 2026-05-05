@@ -23,6 +23,8 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         // Cache the app shell and all static assets
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
+        // Increase limit to 5MB to handle large JS bundles
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // Serve offline.html when a navigation request fails (no network)
         navigateFallback: "/offline.html",
         navigateFallbackDenylist: [
