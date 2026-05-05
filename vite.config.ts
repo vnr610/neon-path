@@ -18,8 +18,8 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      // Use the custom offline fallback page
-      selfDestroying: false,
+      // Destroy any stale service workers from previous builds that cached old chunk filenames
+      selfDestroying: true,
       workbox: {
         // Cache the app shell and all static assets
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
