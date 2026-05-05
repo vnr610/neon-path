@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Orbitron:wght@500;600;700;800;900&family=Sora:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600;700&family=Fira+Code:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700&family=Orbitron:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -341,4 +341,39 @@
   --font-display: 'Sora', ui-sans-serif, system-ui, sans-serif;
   --font-mono:    'IBM Plex Mono', ui-monospace, monospace;
   --font-sans:    'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* SF Pro — Apple / iOS system font stack (no download, uses device font) */
+.font-theme-sf {
+  --font-display: -apple-system, 'SF Pro Display', 'SF Pro Text', BlinkMacSystemFont, ui-sans-serif, sans-serif;
+  --font-mono:    'SF Mono', ui-monospace, 'Menlo', monospace;
+  --font-sans:    -apple-system, 'SF Pro Text', BlinkMacSystemFont, ui-sans-serif, sans-serif;
+}
+
+/* Plus Jakarta Sans — popular Figma design system font */
+.font-theme-jakarta {
+  --font-display: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'DM Mono', ui-monospace, monospace;
+  --font-sans:    'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* DM Sans — clean geometric sans used in many design systems */
+.font-theme-dm {
+  --font-display: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'DM Mono', ui-monospace, monospace;
+  --font-sans:    'DM Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Nunito — rounded friendly sans */
+.font-theme-nunito {
+  --font-display: 'Nunito', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+  --font-sans:    'Nunito', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Outfit — modern geometric, popular in Figma UI kits */
+.font-theme-outfit {
+  --font-display: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'Fira Code', ui-monospace, monospace;
+  --font-sans:    'Outfit', ui-sans-serif, system-ui, sans-serif;
 }

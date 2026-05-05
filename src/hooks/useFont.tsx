@@ -19,22 +19,35 @@ export type FontTheme =
   | "fira"
   | "ibm"
   | "sora"
-  | "mixed";
+  | "mixed"
+  | "sf"
+  | "jakarta"
+  | "dm"
+  | "nunito"
+  | "outfit";
 
 export const FONT_THEMES: {
   id: FontTheme;
   label: string;
-  preview: string;   // shown in the picker as a sample string
-  meta: string;      // font name description
+  meta: string;
+  group: "Cyber" | "Design" | "Apple";
 }[] = [
-  { id: "realm",    label: "Realm",    preview: "Aa",  meta: "Orbitron + JetBrains Mono"  },
-  { id: "terminal", label: "Terminal", preview: "Aa",  meta: "JetBrains Mono"              },
-  { id: "clean",    label: "Clean",    preview: "Aa",  meta: "Space Grotesk"               },
-  { id: "inter",    label: "Inter",    preview: "Aa",  meta: "Inter + Fira Code"           },
-  { id: "fira",     label: "Fira",     preview: "Aa",  meta: "Fira Code"                   },
-  { id: "ibm",      label: "IBM Plex", preview: "Aa",  meta: "IBM Plex Mono"               },
-  { id: "sora",     label: "Sora",     preview: "Aa",  meta: "Sora + JetBrains Mono"       },
-  { id: "mixed",    label: "Mixed",    preview: "Aa",  meta: "Sora + IBM Plex Mono"        },
+  // ── Cyber / Dev ──────────────────────────────────────────────────────────
+  { id: "realm",    label: "Realm",          meta: "Orbitron + JetBrains Mono",  group: "Cyber"  },
+  { id: "terminal", label: "Terminal",       meta: "JetBrains Mono",             group: "Cyber"  },
+  { id: "fira",     label: "Fira Code",      meta: "Fira Code",                  group: "Cyber"  },
+  { id: "ibm",      label: "IBM Plex Mono",  meta: "IBM Plex Mono",              group: "Cyber"  },
+  // ── Design / UI ──────────────────────────────────────────────────────────
+  { id: "inter",    label: "Inter",          meta: "Inter + Fira Code",          group: "Design" },
+  { id: "clean",    label: "Space Grotesk",  meta: "Space Grotesk",              group: "Design" },
+  { id: "jakarta",  label: "Jakarta",        meta: "Plus Jakarta Sans + DM Mono",group: "Design" },
+  { id: "dm",       label: "DM Sans",        meta: "DM Sans + DM Mono",          group: "Design" },
+  { id: "outfit",   label: "Outfit",         meta: "Outfit + Fira Code",         group: "Design" },
+  { id: "sora",     label: "Sora",           meta: "Sora + JetBrains Mono",      group: "Design" },
+  { id: "nunito",   label: "Nunito",         meta: "Nunito + JetBrains Mono",    group: "Design" },
+  { id: "mixed",    label: "Mixed",          meta: "Sora + IBM Plex Mono",       group: "Design" },
+  // ── Apple / iOS ──────────────────────────────────────────────────────────
+  { id: "sf",       label: "SF Pro",         meta: "Apple system font (iOS/macOS)", group: "Apple" },
 ];
 
 const STORAGE_KEY = "vnr610-font-theme";
