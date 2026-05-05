@@ -4,7 +4,6 @@ import { Menu, Search, X, Swords, Terminal, ShieldAlert, LayoutGrid, FolderGit2,
 import { useAuth } from "@/hooks/useAuth";
 import { useCommandPalette } from "@/components/saber/CommandPalette";
 import { FontToggle } from "@/components/saber/FontToggle";
-import { ThemeToggle } from "@/components/saber/ThemeToggle";
 
 const primaryLinks = [
   { to: "/", label: "Home" },
@@ -192,7 +191,6 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
         {/* Desktop right side */}
         <div className="hidden md:flex items-center gap-2">
           <FontToggle />
-          <ThemeToggle />
           <button
             onClick={handleSearchClick}
             className="flex items-center justify-center h-9 w-9 rounded-md border border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
@@ -259,10 +257,9 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
             <div onClick={() => setOpen(false)}>
               <AdminButton mobile />
             </div>
-            {/* Font + theme controls in mobile menu */}
+            {/* Font control in mobile menu */}
             <div className="mt-2 pt-3 border-t border-border/40 flex items-center gap-2 px-1">
               <FontToggle />
-              <ThemeToggle />
             </div>
           </nav>
         </div>
