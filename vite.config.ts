@@ -66,68 +66,28 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
   build: {
-    // Raise the warning threshold — vendor contains recharts/d3/markdown/mammoth (~400 kB gzipped), acceptable for a portfolio
-    chunkSizeWarningLimit: 1300,
+    // Raise the warning threshold — vendor contains all React ecosystem + recharts/d3/markdown/mammoth (~518 kB gzipped), acceptable for a portfolio
+    chunkSizeWarningLimit: 1700,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // React core — tiny, always needed, cache forever
-          if (id.includes("node_modules/react/") || id.includes("node_modules/react-dom/") || id.includes("node_modules/react/jsx")) {
-            return "react-core";
-          }
-          // Router
-          if (id.includes("node_modules/react-router")) {
-            return "router";
-          }
-          // Supabase client
+          // Only split libraries that have NO React dependency and no internal circular refs.
+          // Everything that touches React must stay in vendor so Rollup controls init order.
+
+          // Supabase — pure JS, no React
           if (id.includes("node_modules/@supabase")) {
             return "supabase";
           }
-          // TanStack Query
-          if (id.includes("node_modules/@tanstack")) {
-            return "query";
-          }
-          // Radix UI primitives (large — split from app code)
-          if (id.includes("node_modules/@radix-ui")) {
-            return "radix";
-          }
-          // Lucide icons (very large — split separately)
-          if (id.includes("node_modules/lucide-react")) {
-            return "icons";
-          }
-          // Lodash utilities
+          // Lodash — pure JS utilities
           if (id.includes("node_modules/lodash")) {
             return "lodash";
           }
-          // Date utilities
+          // Date utilities — pure JS
           if (id.includes("node_modules/date-fns")) {
             return "date-fns";
           }
-          // Word doc parser (admin-only, very heavy)
-          if (id.includes("node_modules/mammoth")) {
-            return "mammoth";
-          }
-          // Form validation
-          if (id.includes("node_modules/react-hook-form") || id.includes("node_modules/@hookform") || id.includes("node_modules/zod")) {
-            return "forms";
-          }
-          // UI extras (dialogs, carousels, date pickers, etc.)
-          if (
-            id.includes("node_modules/cmdk") ||
-            id.includes("node_modules/vaul") ||
-            id.includes("node_modules/sonner") ||
-            id.includes("node_modules/embla-carousel") ||
-            id.includes("node_modules/react-resizable-panels") ||
-            id.includes("node_modules/react-day-picker") ||
-            id.includes("node_modules/input-otp")
-          ) {
-            return "ui-extras";
-          }
-          // Vercel analytics
-          if (id.includes("node_modules/@vercel")) {
-            return "analytics";
-          }
-          // Everything else in node_modules → vendor chunk
+          // Everything else (React, Radix, Recharts, Markdown, Mammoth, etc.) → vendor
+          // Rollup handles their circular deps and init order correctly in one chunk.
           if (id.includes("node_modules/")) {
             return "vendor";
           }
