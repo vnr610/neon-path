@@ -4,5 +4,25 @@
       "source": "/((?!.*\\..*).*)",
       "destination": "/index.html"
     }
+  ],
+  "build": {
+    "env": {
+      "VITE_SUPABASE_URL": "https://ucghqoburfkakzfubets.supabase.co",
+      "VITE_SUPABASE_PUBLISHABLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjZ2hxb2J1cmZrYWt6ZnViZXRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2OTU3MDYsImV4cCI6MjA5MzI3MTcwNn0.5IpkIpuFGy0S03wL0TqWSdWNhl9pjTvgoVl4YfDjEWs",
+      "VITE_SUPABASE_PROJECT_ID": "ucghqoburfkakzfubets",
+      "VITE_GISCUS_CATEGORY_ID": "DIC_kwDOSSOiBc4C8SsP",
+      "VITE_GISCUS_CATEGORY": "General"
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+      ]
+    }
   ]
 }
