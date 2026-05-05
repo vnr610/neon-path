@@ -66,8 +66,8 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
   build: {
-    // Raise the warning threshold — 800 kB unminified is ~280 kB gzipped, acceptable for a portfolio
-    chunkSizeWarningLimit: 800,
+    // Raise the warning threshold — vendor chunk contains mammoth+markdown libs (~320 kB gzipped), acceptable for a portfolio
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
@@ -90,21 +90,6 @@ export default defineConfig(({ mode }) => ({
           // Radix UI primitives (large — split from app code)
           if (id.includes("node_modules/@radix-ui")) {
             return "radix";
-          }
-          // Markdown / syntax highlighting (heavy, only used on blog pages)
-          if (
-            id.includes("node_modules/react-markdown") ||
-            id.includes("node_modules/react-syntax-highlighter") ||
-            id.includes("node_modules/highlight.js") ||
-            id.includes("node_modules/rehype") ||
-            id.includes("node_modules/remark") ||
-            id.includes("node_modules/unified") ||
-            id.includes("node_modules/micromark") ||
-            id.includes("node_modules/mdast") ||
-            id.includes("node_modules/hast") ||
-            id.includes("node_modules/vfile")
-          ) {
-            return "markdown";
           }
           // Charts (only used on skills/analytics pages)
           if (id.includes("node_modules/recharts") || id.includes("node_modules/d3-")) {
