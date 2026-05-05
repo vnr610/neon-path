@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { RequireAdmin } from "@/components/auth/RequireAdmin";
 import { ThemeProvider } from "@/components/saber/ThemeProvider";
+import { FontProvider } from "@/hooks/useFont";
 import { CommandPalette, CommandPaletteProvider } from "@/components/saber/CommandPalette";
 import { OfflineDetector } from "@/components/saber/OfflineDetector";
 import { ErrorBoundary } from "@/components/saber/ErrorBoundary";
@@ -117,21 +118,23 @@ function AppRoutes() {
 const App = () => (
   <ErrorBoundary>
     <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <OfflineDetector>
-              <CommandPaletteProvider>
-                <AuthProvider>
-                  <AppRoutes />
-                </AuthProvider>
-              </CommandPaletteProvider>
-            </OfflineDetector>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
+      <FontProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <OfflineDetector>
+                <CommandPaletteProvider>
+                  <AuthProvider>
+                    <AppRoutes />
+                  </AuthProvider>
+                </CommandPaletteProvider>
+              </OfflineDetector>
+            </BrowserRouter>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </FontProvider>
     </ThemeProvider>
   </ErrorBoundary>
 );

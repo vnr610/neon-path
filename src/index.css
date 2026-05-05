@@ -264,3 +264,36 @@
     animation: spin-slow 12s linear infinite reverse;
   }
 }
+
+/* ── Font themes ──────────────────────────────────────────────────────────── */
+/*
+ * Applied as a class on <html> by FontProvider.
+ * All three fonts are already loaded via the Google Fonts @import above.
+ *
+ * Tailwind maps:
+ *   font-display → --font-display  (headings, logo, eyebrows)
+ *   font-mono    → --font-mono     (body, code, labels)
+ *   font-sans    → --font-sans     (lead text, descriptions)
+ */
+
+/* Default — Realm (Orbitron display + JetBrains Mono body) */
+:root,
+.font-theme-realm {
+  --font-display: 'Orbitron', 'JetBrains Mono', monospace;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+  --font-sans:    'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Terminal — JetBrains Mono for everything */
+.font-theme-terminal {
+  --font-display: 'JetBrains Mono', ui-monospace, monospace;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+  --font-sans:    'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Clean — Space Grotesk for everything */
+.font-theme-clean {
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-sans:    'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+}

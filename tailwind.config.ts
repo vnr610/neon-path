@@ -12,9 +12,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
-        display: ['Orbitron', '"JetBrains Mono"', 'monospace'],
-        sans: ['"Space Grotesk"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono:    ['var(--font-mono)',    '"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        display: ['var(--font-display)', 'Orbitron', '"JetBrains Mono"', 'monospace'],
+        sans:    ['var(--font-sans)',    '"Space Grotesk"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
