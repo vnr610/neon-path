@@ -65,4 +65,97 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
+  build: {
+    // Raise the warning threshold — 800 kB unminified is ~280 kB gzipped, acceptable for a portfolio
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // React core — tiny, always needed, cache forever
+          if (id.includes("node_modules/react/") || id.includes("node_modules/react-dom/") || id.includes("node_modules/react/jsx")) {
+            return "react-core";
+          }
+          // Router
+          if (id.includes("node_modules/react-router")) {
+            return "router";
+          }
+          // Supabase client
+          if (id.includes("node_modules/@supabase")) {
+            return "supabase";
+          }
+          // TanStack Query
+          if (id.includes("node_modules/@tanstack")) {
+            return "query";
+          }
+          // Radix UI primitives (large — split from app code)
+          if (id.includes("node_modules/@radix-ui")) {
+            return "radix";
+          }
+          // Markdown / syntax highlighting (heavy, only used on blog pages)
+          if (
+            id.includes("node_modules/react-markdown") ||
+            id.includes("node_modules/react-syntax-highlighter") ||
+            id.includes("node_modules/highlight.js") ||
+            id.includes("node_modules/rehype") ||
+            id.includes("node_modules/remark") ||
+            id.includes("node_modules/unified") ||
+            id.includes("node_modules/micromark") ||
+            id.includes("node_modules/mdast") ||
+            id.includes("node_modules/hast") ||
+            id.includes("node_modules/vfile")
+          ) {
+            return "markdown";
+          }
+          // Charts (only used on skills/analytics pages)
+          if (id.includes("node_modules/recharts") || id.includes("node_modules/d3-")) {
+            return "charts";
+          }
+          // Animations
+          if (id.includes("node_modules/animejs")) {
+            return "animations";
+          }
+          // Lucide icons (very large — split separately)
+          if (id.includes("node_modules/lucide-react")) {
+            return "icons";
+          }
+          // Lodash utilities
+          if (id.includes("node_modules/lodash")) {
+            return "lodash";
+          }
+          // Date utilities
+          if (id.includes("node_modules/date-fns")) {
+            return "date-fns";
+          }
+          // Word doc parser (admin-only, very heavy)
+          if (id.includes("node_modules/mammoth")) {
+            return "mammoth";
+          }
+          // Form validation
+          if (id.includes("node_modules/react-hook-form") || id.includes("node_modules/@hookform") || id.includes("node_modules/zod")) {
+            return "forms";
+          }
+          // UI extras (dialogs, carousels, date pickers, etc.)
+          if (
+            id.includes("node_modules/cmdk") ||
+            id.includes("node_modules/vaul") ||
+            id.includes("node_modules/sonner") ||
+            id.includes("node_modules/embla-carousel") ||
+            id.includes("node_modules/react-resizable-panels") ||
+            id.includes("node_modules/react-day-picker") ||
+            id.includes("node_modules/input-otp")
+          ) {
+            return "ui-extras";
+          }
+          // Vercel analytics
+          if (id.includes("node_modules/@vercel")) {
+            return "analytics";
+          }
+          // Everything else in node_modules → vendor chunk
+          if (id.includes("node_modules/")) {
+            return "vendor";
+          }
+        },
+      },
+    },
+  },
 }));
