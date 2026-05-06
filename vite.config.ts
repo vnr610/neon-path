@@ -21,8 +21,9 @@ export default defineConfig(({ mode }) => ({
       selfDestroying: false,
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
-        navigateFallback: "/offline.html",
-        // Raise workbox file size limit to 3 MB to accommodate vendor chunk
+        // Do NOT set navigateFallback — it causes the offline page to flash
+        // on hard refresh (Ctrl+R) because the SW intercepts the navigation
+        // before the network responds. The OfflineDetector handles this in React.
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         navigateFallbackDenylist: [
           /^\/rest\//,
