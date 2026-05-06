@@ -1114,7 +1114,8 @@ export const loadRecycleBin = async (): Promise<RecycleBinItem[]> => {
   return (data || []).map(mapRecycleBinItem);
 };
 
-/** Move an item to the recycle bin instead of hard-deleting it */
+/** Move an item to the recycle bin instead of hard-deleting it.
+ *  Falls back to a hard delete if the recycle_bin table doesn't exist yet. */
 async function softDelete(
   table: string,
   id: string,
@@ -1126,16 +1127,18 @@ async function softDelete(
     .from(table).select("*").eq("id", id).maybeSingle();
   if (fetchErr || !row) { console.error("softDelete fetch error:", fetchErr); return false; }
 
-  // Insert into recycle bin
+  // Try to insert into recycle bin — if it fails (table missing), skip and hard-delete
   const { error: insertErr } = await supabase.from("recycle_bin").insert({
     item_type: itemType,
     item_id: id,
     item_title: row[titleField] ?? row.name ?? row.title ?? id,
     data: row,
   });
-  if (insertErr) { console.error("softDelete insert error:", insertErr); return false; }
+  if (insertErr) {
+    console.warn("softDelete: recycle_bin unavailable, falling back to hard delete:", insertErr.message);
+  }
 
-  // Hard delete the original
+  // Hard delete the original regardless
   const { error: deleteErr } = await supabase.from(table).delete().eq("id", id);
   if (deleteErr) { console.error("softDelete delete error:", deleteErr); return false; }
 

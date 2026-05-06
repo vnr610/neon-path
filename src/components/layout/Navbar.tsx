@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, Search, X, Swords, Terminal, ShieldAlert, LayoutGrid, FolderGit2, GitCommitVertical, Award } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCommandPalette } from "@/components/saber/CommandPalette";
-import { FontToggle } from "@/components/saber/FontToggle";
+import { FontToggle, FontToggleMobile } from "@/components/saber/FontToggle";
 
 const primaryLinks = [
   { to: "/", label: "Home" },
@@ -275,8 +275,8 @@ export function Navbar({ onSearchOpen }: { onSearchOpen?: () => void }) {
             <div onClick={() => setOpen(false)}>
               <AdminButton mobile />
             </div>
-            <div className="mt-2 pt-3 border-t border-border/40 flex items-center gap-2 px-1">
-              <FontToggle />
+            <div className="mt-2 pt-3 border-t border-border/40">
+              <FontToggleMobile />
             </div>
           </nav>
         </div>
