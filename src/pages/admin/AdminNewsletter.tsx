@@ -218,9 +218,9 @@ const AdminNewsletter = () => {
       setRedirectUrl("");
       setSelectedPost(null);
       setAiGenerated(false);
-    } catch (err: any) {
+    } catch (err) {
       setBroadcastStatus("error");
-      setBroadcastMsg(err?.message ?? "Broadcast failed. Check your Resend API key.");
+      setBroadcastMsg(err instanceof Error ? err.message : "Broadcast failed. Check your Resend API key.");
     }
   };
 

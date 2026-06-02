@@ -52,7 +52,7 @@ serve(async (req) => {
       const pubDate = new Date(post.created_at).toUTCString();
       const desc = post.excerpt
         ? escapeXml(post.excerpt)
-        : escapeXml(post.content.replace(/[#*`\[\]]/g, "").slice(0, 200) + "…");
+        : escapeXml(post.content.replace(/[#*`[\]]/g, "").slice(0, 200) + "…");
       const categories = (post.tags ?? [])
         .map((t: string) => `<category>${escapeXml(t)}</category>`)
         .join("\n        ");

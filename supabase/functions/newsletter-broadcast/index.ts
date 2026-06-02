@@ -11,6 +11,57 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+type Subscriber = {
+  email: string;
+};
+
+function jsonResponse(body: Record<string, unknown>, status: number) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...cors, "Content-Type": "application/json" },
+  });
+}
+
+async function requireAdmin(req: Request) {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return { error: jsonResponse({ error: "Unauthorized" }, 401) };
+  }
+
+  const userToken = authHeader.replace("Bearer ", "");
+  const anonClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { auth: { persistSession: false } },
+  );
+  const { data: { user }, error: authError } = await anonClient.auth.getUser(userToken);
+  if (authError || !user) {
+    return { error: jsonResponse({ error: "Invalid or expired token" }, 401) };
+  }
+
+  const adminClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false } },
+  );
+  const { data: roleData, error: roleError } = await adminClient
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+
+  if (roleError) {
+    console.error("role check error:", roleError);
+    return { error: jsonResponse({ error: "Unable to verify permissions" }, 500) };
+  }
+  if (!roleData) {
+    return { error: jsonResponse({ error: "Insufficient permissions" }, 403) };
+  }
+
+  return { adminClient };
+}
+
 function buildHtml(subject: string, body: string, siteUrl: string): string {
   const htmlBody = body.trim().split("\n\n")
     .map((p) => `<p style="margin:0 0 16px;font-size:14px;color:#ccc;line-height:1.7;">${p.replace(/\n/g, "<br/>")}</p>`)
@@ -47,40 +98,30 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {
+    const auth = await requireAdmin(req);
+    if (auth.error) return auth.error;
+
     const { subject, body } = await req.json() as { subject?: string; body?: string };
 
     if (!subject?.trim() || !body?.trim()) {
-      return new Response(JSON.stringify({ error: "subject and body are required" }), {
-        status: 400, headers: { ...cors, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "subject and body are required" }, 400);
     }
 
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (!resendKey) {
-      return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), {
-        status: 500, headers: { ...cors, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "RESEND_API_KEY not configured" }, 500);
     }
 
     const siteUrl = Deno.env.get("SITE_URL") ?? "https://www.manojmagar.info.np";
 
-    // Load subscribers
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } },
-    );
-
-    const { data: subscribers, error: dbError } = await supabase
+    const { data: subscribers, error: dbError } = await auth.adminClient
       .from("newsletter_subscribers")
       .select("email");
 
     if (dbError) throw new Error(dbError.message);
 
     if (!subscribers || subscribers.length === 0) {
-      return new Response(JSON.stringify({ status: "ok", sent: 0 }), {
-        status: 200, headers: { ...cors, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ status: "ok", sent: 0 }, 200);
     }
 
     const html = buildHtml(subject, body, siteUrl);
@@ -91,8 +132,8 @@ serve(async (req) => {
     const errors: string[] = [];
 
     // Send one per subscriber using verified domain sender
-    for (const row of subscribers) {
-      const email = (row as any).email as string;
+    for (const row of subscribers as Subscriber[]) {
+      const email = row.email;
 
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -130,8 +171,6 @@ serve(async (req) => {
     );
   } catch (err) {
     console.error("broadcast error:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...cors, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: String(err) }, 500);
   }
 });

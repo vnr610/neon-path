@@ -198,7 +198,7 @@ async function fetchGitHub(username: string): Promise<{
 function tokenise(text: string): string[] {
   return text
     .toLowerCase()
-    .split(/[\s,/|·\-_#@()\[\]{}]+/)
+    .split(/[\s,/|·\-_#@()[\]{}]+/)
     .map((t) => t.replace(/[^a-z0-9.#+]/g, ""))
     .filter((t) => t.length > 1);
 }

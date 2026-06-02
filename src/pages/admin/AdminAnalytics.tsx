@@ -30,7 +30,13 @@ import {
 
 // ─── Custom tooltip ───────────────────────────────────────────────────────────
 
-function ChartTooltip({ active, payload, label }: any) {
+type ChartTooltipProps = {
+  active?: boolean;
+  payload?: Array<{ value?: string | number }>;
+  label?: string | number;
+};
+
+function ChartTooltip({ active, payload, label }: ChartTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border border-border/60 bg-card/95 backdrop-blur-sm px-4 py-3 shadow-lg">

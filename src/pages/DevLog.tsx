@@ -28,7 +28,7 @@ function estimateReadTime(content: string): number {
 
 function contentPreview(log: DevLog, maxLen = 140): string {
   const base = log.excerpt?.trim() || log.content;
-  const text = base.replace(/[#*`\[\]]/g, "").replace(/\s+/g, " ").trim();
+  const text = base.replace(/[#*`[\]]/g, "").replace(/\s+/g, " ").trim();
   return text.length <= maxLen ? text : text.slice(0, maxLen) + "…";
 }
 

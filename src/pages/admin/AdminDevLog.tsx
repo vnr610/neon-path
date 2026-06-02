@@ -72,14 +72,14 @@ const AdminDevLog = () => {
         setSearchParams({}, { replace: true });
       }
     });
-  }, []);
+  }, [searchParams, setSearchParams]);
 
   // Auto-generate slug from title
   useEffect(() => {
     if (formData.title && !formData.slug) {
       setFormData((d) => ({ ...d, slug: slugify(d.title) }));
     }
-  }, [formData.title]);
+  }, [formData.title, formData.slug]);
 
   const resetForm = () => {
     setEditingId(null);

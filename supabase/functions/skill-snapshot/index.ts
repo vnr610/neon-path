@@ -20,12 +20,69 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function jsonResponse(body: Record<string, unknown>, status: number) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function requireAdminOrScheduleSecret(req: Request) {
+  const scheduleSecret = Deno.env.get("SKILL_SNAPSHOT_SECRET");
+  const providedSecret = req.headers.get("x-snapshot-secret") ?? req.headers.get("x-cron-secret");
+
+  if (scheduleSecret && providedSecret === scheduleSecret) {
+    return null;
+  }
+
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return jsonResponse({ error: "Unauthorized" }, 401);
+  }
+
+  const userToken = authHeader.replace("Bearer ", "");
+  const anonClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { auth: { persistSession: false } },
+  );
+  const { data: { user }, error: authError } = await anonClient.auth.getUser(userToken);
+  if (authError || !user) {
+    return jsonResponse({ error: "Invalid or expired token" }, 401);
+  }
+
+  const adminClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false } },
+  );
+  const { data: roleData, error: roleError } = await adminClient
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+
+  if (roleError) {
+    console.error("role check error:", roleError);
+    return jsonResponse({ error: "Unable to verify permissions" }, 500);
+  }
+  if (!roleData) {
+    return jsonResponse({ error: "Insufficient permissions" }, 403);
+  }
+
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
+    const authError = await requireAdminOrScheduleSecret(req);
+    if (authError) return authError;
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -38,17 +95,11 @@ serve(async (req) => {
 
     if (fetchError) {
       console.error("Failed to fetch skills:", fetchError);
-      return new Response(JSON.stringify({ error: fetchError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: fetchError.message }, 500);
     }
 
     if (!skills || skills.length === 0) {
-      return new Response(JSON.stringify({ ok: true, snapshotted: 0, message: "No skills found" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ ok: true, snapshotted: 0, message: "No skills found" }, 200);
     }
 
     // Insert a snapshot row for each skill
@@ -64,10 +115,7 @@ serve(async (req) => {
 
     if (insertError) {
       console.error("Failed to insert snapshots:", insertError);
-      return new Response(JSON.stringify({ error: insertError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: insertError.message }, 500);
     }
 
     // Prune snapshots older than 90 days to keep the table lean
@@ -100,9 +148,6 @@ serve(async (req) => {
     );
   } catch (err) {
     console.error("skill-snapshot error:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: String(err) }, 500);
   }
 });

@@ -23,7 +23,22 @@ export type BlogPost = {
 
 export type BlogNeighbor = { slug: string; title: string };
 
-const mapBlogFromDb = (row: any): BlogPost => ({
+type BlogPostRow = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt?: string | null;
+  content: string;
+  content_format?: string | null;
+  thumbnail_url?: string | null;
+  tags?: string[] | null;
+  created_at: string;
+  author?: string | null;
+  status?: string | null;
+  publish_at?: string | null;
+};
+
+const mapBlogFromDb = (row: BlogPostRow): BlogPost => ({
   id: row.id,
   title: row.title,
   slug: row.slug,
@@ -95,7 +110,24 @@ export type SiteHomeSettings = {
   avatarUrl: string | null;
 };
 
-const mapProjectFromDb = (row: any): Project => ({
+type ProjectRow = {
+  id: string;
+  name: string;
+  desc: string;
+  repo?: string | null;
+  live?: string | null;
+  stack: string;
+  cover?: string | null;
+  created_at: string;
+  featured_on_home?: boolean | null;
+  home_slot?: number | null;
+  slug?: string | null;
+  long_desc?: string | null;
+  challenges?: string | null;
+  screenshots?: string[] | null;
+};
+
+const mapProjectFromDb = (row: ProjectRow): Project => ({
   id: row.id,
   name: row.name,
   desc: row.desc,
@@ -355,7 +387,14 @@ export const loadSkills = async (): Promise<Skill[]> => {
     return [];
   }
 
-  return (data || []).map((row: any) => ({
+  return (data || []).map((row: {
+    id: string;
+    name: string;
+    category: Skill["category"];
+    level: string;
+    progress: number;
+    created_at: string;
+  }) => ({
     id: row.id,
     name: row.name,
     category: row.category,
@@ -630,7 +669,14 @@ export const loadTimelineEntries = async (): Promise<TimelineEntry[]> => {
     return [];
   }
 
-  return (data || []).map((row: any) => ({
+  return (data || []).map((row: {
+    id: string;
+    date: string;
+    realm: string;
+    title: string;
+    desc?: string | null;
+    created_at: string;
+  }) => ({
     id: row.id,
     date: row.date,
     realm: row.realm,
@@ -714,7 +760,15 @@ export const loadCertifications = async (): Promise<Certification[]> => {
     return [];
   }
 
-  return (data || []).map((row: any) => ({
+  return (data || []).map((row: {
+    id: string;
+    name: string;
+    issuer: string;
+    date: string;
+    url?: string | null;
+    badge?: string | null;
+    created_at: string;
+  }) => ({
     id: row.id,
     name: row.name,
     issuer: row.issuer,
@@ -826,7 +880,14 @@ export const loadContactMessages = async (): Promise<ContactMessage[]> => {
     console.error("Error loading contact messages:", error);
     return [];
   }
-  return (data || []).map((row: any) => ({
+  return (data || []).map((row: {
+    id: string;
+    name: string;
+    email: string;
+    message: string;
+    read: boolean;
+    created_at: string;
+  }) => ({
     id: row.id,
     name: row.name,
     email: row.email,
@@ -938,7 +999,7 @@ export const loadSkillProgressHistory = async (skillId: string): Promise<SkillPr
     .order("recorded_at", { ascending: true })
     .limit(30);
   if (error) return [];
-  return (data || []).map((row: any) => ({
+  return (data || []).map((row: { progress: number; recorded_at: string }) => ({
     progress: row.progress,
     recordedAt: row.recorded_at,
   }));
@@ -1062,7 +1123,12 @@ export const loadNewsletterSubscribers = async (): Promise<NewsletterSubscriber[
     .select("*")
     .order("created_at", { ascending: false });
   if (error) { console.error("Error loading subscribers:", error); return []; }
-  return (data || []).map((row: any) => ({
+  return (data || []).map((row: {
+    id: string;
+    email: string;
+    confirmed: boolean;
+    created_at: string;
+  }) => ({
     id: row.id,
     email: row.email,
     confirmed: row.confirmed,
@@ -1095,7 +1161,17 @@ export type RecycleBinItem = {
   expiresAt: string;
 };
 
-const mapRecycleBinItem = (row: any): RecycleBinItem => ({
+type RecycleBinRow = {
+  id: string;
+  item_type: RecycleBinItem["itemType"];
+  item_id: string;
+  item_title: string;
+  data: Record<string, unknown>;
+  deleted_at: string;
+  expires_at: string;
+};
+
+const mapRecycleBinItem = (row: RecycleBinRow): RecycleBinItem => ({
   id: row.id,
   itemType: row.item_type,
   itemId: row.item_id,
@@ -1210,7 +1286,25 @@ export type DevLog = {
   updatedAt: string;
 };
 
-const mapDevLog = (row: any): DevLog => ({
+type DevLogRow = {
+  id: string;
+  log_date: string;
+  title: string;
+  slug?: string | null;
+  excerpt?: string | null;
+  content: string;
+  content_format?: string | null;
+  thumbnail_url?: string | null;
+  author?: string | null;
+  tags?: string[] | null;
+  mood?: DevLogMood | null;
+  is_public?: boolean | null;
+  status?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+const mapDevLog = (row: DevLogRow): DevLog => ({
   id: row.id,
   logDate: row.log_date,
   title: row.title,

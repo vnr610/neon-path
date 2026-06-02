@@ -52,6 +52,14 @@ interface FormFieldProps {
   children: ReactNode;
 }
 
+type EnhancedChildProps = {
+  id?: string;
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean;
+  "aria-required"?: boolean;
+  state?: FieldState;
+};
+
 export function FormField({
   id,
   label,
@@ -69,15 +77,15 @@ export function FormField({
 
   // Auto-wire aria attributes onto the first valid child (the actual control)
   const enhancedChild = isValidElement(children)
-    ? cloneElement(children as React.ReactElement<any>, {
-        id: (children.props as any).id ?? id,
+    ? cloneElement(children as React.ReactElement<EnhancedChildProps>, {
+        id: children.props.id ?? id,
         "aria-describedby":
-          [describedBy, (children.props as any)["aria-describedby"]]
+          [describedBy, children.props["aria-describedby"]]
             .filter(Boolean)
             .join(" ") || undefined,
-        "aria-invalid": error ? true : (children.props as any)["aria-invalid"],
-        "aria-required": required || (children.props as any)["aria-required"],
-        state: (children.props as any).state ?? state,
+        "aria-invalid": error ? true : children.props["aria-invalid"],
+        "aria-required": required || children.props["aria-required"],
+        state: children.props.state ?? state,
       })
     : children;
 

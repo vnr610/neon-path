@@ -83,7 +83,7 @@ const Blog = () => {
     if (draft.title && !draft.slug) {
       setDraft((d) => ({ ...d, slug: slugify(d.title) }));
     }
-  }, [draft.title]);
+  }, [draft.title, draft.slug]);
 
   const filtered = useMemo(() => {
     let result = posts;

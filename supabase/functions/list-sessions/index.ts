@@ -82,7 +82,16 @@ serve(async (req) => {
     return "Desktop";
   }
 
-  const sessions = (adminData?.sessions ?? adminData ?? []).map((s: any) => ({
+  type SessionRow = {
+    id: string;
+    created_at?: string | null;
+    updated_at?: string | null;
+    user_agent?: string | null;
+    ip?: string | null;
+  };
+
+  const sessionRows = (adminData?.sessions ?? adminData ?? []) as SessionRow[];
+  const sessions = sessionRows.map((s) => ({
     id: s.id,
     createdAt: s.created_at,
     updatedAt: s.updated_at,
