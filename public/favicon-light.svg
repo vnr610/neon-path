@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="VNR610 light favicon">
+  <circle cx="32" cy="32" r="31" fill="#fff"/>
+  <g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 12h13l9 35 9-35h13L32 59Z" stroke-width="4.3"/>
+    <path d="M17 17h7l8 30 8-30h7" stroke-width="2.8"/>
+    <path d="M25 13c2.8 8.6 2.8 17.4 0 26M39 13c-2.8 8.6-2.8 17.4 0 26" stroke-width="2.3"/>
+    <path d="M21 21h8M20 28h10M20 35h9M35 21h8M34 28h10M35 35h9" stroke-width="2"/>
+    <path d="M22 45h-5M47 45h-5M18 38h-6M52 38h-6M17 31h-5M52 31h-5" stroke-width="2.2"/>
+    <circle cx="12" cy="31" r="1.6" fill="#000" stroke="none"/>
+    <circle cx="12" cy="38" r="1.6" fill="#000" stroke="none"/>
+    <circle cx="17" cy="45" r="1.6" fill="#000" stroke="none"/>
+    <circle cx="52" cy="31" r="1.6" fill="#000" stroke="none"/>
+    <circle cx="52" cy="38" r="1.6" fill="#000" stroke="none"/>
+    <circle cx="47" cy="45" r="1.6" fill="#000" stroke="none"/>
+  </g>
+  <g fill="#000">
+    <path d="M24.8 23c1.5-3.3 4-4.7 7.2-4.7s5.7 1.4 7.2 4.7l-2.2 4.9H27Z"/>
+    <path d="M30.2 27.5h3.6l-1.8 11Z"/>
+    <path d="M25.6 28.2 22.1 32l-1 5.1M38.4 28.2l3.5 3.8 1 5.1" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" fill="none"/>
+    <circle cx="29" cy="23.8" r="1.6" fill="#fff"/>
+    <circle cx="35" cy="23.8" r="1.6" fill="#fff"/>
+  </g>
+</svg>
